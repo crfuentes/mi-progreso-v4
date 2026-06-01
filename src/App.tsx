@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine, ResponsiveContainer, Legend, ScatterChart, Scatter, ZAxis } from "recharts";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine, ResponsiveContainer, Legend } from "recharts";
 import { db, auth } from "./firebase";
 import { doc, getDoc, setDoc, onSnapshot } from "firebase/firestore";
 import { signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "firebase/auth";
@@ -202,7 +202,7 @@ export default function App() {
   // ── Settings state ──
   const [apiKey,setApiKey]=useState<string>(()=>lsGet("gemini-api-key")||"");
   const [apiKeyInput,setApiKeyInput]=useState<string>(()=>lsGet("gemini-api-key")||"");
-  const [notifEnabled,setNotifEnabled]=useState<boolean>(()=>lsGet("notif-enabled")||false);
+  const [notifEnabled]=useState<boolean>(()=>lsGet("notif-enabled")||false);
   const [mealPlan,setMealPlan]=useState<Plan>(()=>lsGet("custom-meal-plan")||DEFAULT_PLAN);
   const [pdfLoading,setPdfLoading]=useState(false);
   const [pdfPreview,setPdfPreview]=useState<Plan|null>(null);
@@ -370,7 +370,6 @@ export default function App() {
   const isCustomPlan=JSON.stringify(mealPlan)!==JSON.stringify(DEFAULT_PLAN);
   const inp:any={width:"100%",border:`1.5px solid ${G.border}`,borderRadius:10,padding:"10px 13px",fontSize:15,outline:"none",boxSizing:"border-box",background:G.bg,color:G.text,fontFamily:"inherit"};
   const wellnessHistory=Array.from({length:14},(_,i)=>{ const d=new Date(today); d.setDate(d.getDate()-13+i); const data=lsGet(dayKey(d)); const wl=data?.wellness||{}; return {date:`${d.getDate()}/${d.getMonth()+1}`,sleep:wl.sleep||0,energy:wl.energy||0,mood:wl.mood||0}; });
-  const corrData=wellnessHistory.filter(d=>d.sleep>0&&d.energy>0).map(d=>({x:d.sleep,y:d.energy,z:1}));
   const gymExNames=[...new Set(Object.values(gymSessions).flatMap(s=>s.exercises.map(e=>e.name)))].sort();
   const selEx=gymSelectedEx||gymExNames[0]||"";
   const gymProgressData=Object.entries(gymSessions).filter(([_,s])=>s.exercises.some(e=>e.name===selEx)).map(([date,s])=>{ const ex=s.exercises.find(e=>e.name===selEx); const maxW=ex?Math.max(...ex.sets.map(s=>s.weight||0)):0; const totalV=ex?ex.sets.reduce((sum,s)=>(s.weight||0)*(s.reps||0)+sum,0):0; return {date:date.slice(5),maxPeso:maxW,volumen:totalV}; }).sort((a,b)=>a.date.localeCompare(b.date)).slice(-12);
