@@ -3,12 +3,12 @@ import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBMKjzxFePim3ja3QuFjznLaE7l3Nc2dBY",
-  authDomain: "nutrifit-2-34ead.firebaseapp.com",
-  projectId: "nutrifit-2-34ead",
-  storageBucket: "nutrifit-2-34ead.firebasestorage.app",
-  messagingSenderId: "362172527200",
-  appId: "1:362172527200:web:8b7735490d542b47734905"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
 const app = initializeApp(firebaseConfig);
