@@ -62,8 +62,7 @@ const DEFAULT_PLAN: Plan = {
 };
 
 const DEFAULT_GYM_TEMPLATE: GymTemplate = {
-  A: { label:"Día A", exercises:[{id:"a1",name:"Ejercicio 1"},{id:"a2",name:"Ejercicio 2"},{id:"a3",name:"Ejercicio 3"},{id:"a4",name:"Ejercicio 4"},{id:"a5",name:"Ejercicio 5"}] },
-  B: { label:"Día B", exercises:[{id:"b1",name:"Ejercicio 1"},{id:"b2",name:"Ejercicio 2"},{id:"b3",name:"Ejercicio 3"},{id:"b4",name:"Ejercicio 4"},{id:"b5",name:"Ejercicio 5"}] },
+  main: { label:"Mi rutina", exercises:[{id:"m1",name:"Ejercicio 1"},{id:"m2",name:"Ejercicio 2"},{id:"m3",name:"Ejercicio 3"},{id:"m4",name:"Ejercicio 4"},{id:"m5",name:"Ejercicio 5"}] },
 };
 
 const MEAL_ORDER = ["desayuno","colacion1","almuerzo","colacion2","cena","colacion3","postEntreno"];
@@ -100,18 +99,47 @@ const getWeekStart = (base:Date,offset:number) => { const d=new Date(base); d.se
 const avg = (arr:number[]) => arr.length?+(arr.reduce((a,b)=>a+b,0)/arr.length).toFixed(1):0;
 const normalizeName = (s:string):string => s.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().trim().replace(/\s+/g," ");
 const levenshtein = (a:string,b:string):number => { if(a===b) return 0; if(!a.length) return b.length; if(!b.length) return a.length; let prev=Array.from({length:b.length+1},(_,i)=>i); for(let i=0;i<a.length;i++){ const curr=[i+1]; for(let j=0;j<b.length;j++){ curr.push(Math.min(prev[j+1]+1,curr[j]+1,prev[j]+(a[i]===b[j]?0:1))); } prev=curr; } return prev[b.length]; };
-const mergeExerciseDuplicates = (sessions:GymSessions):{sessions:GymSessions,changed:boolean} => {
+const mergeExerciseDuplicates = (sessions:GymSessions):{sessions:GymSessions,changed:boolean,canonical:Record<string,string>,merges:{from:string;to:string}[]} => {
   const stats:Record<string,{count:number,lastDate:string,normalized:string}>={};
   Object.entries(sessions).forEach(([date,session])=>{ session.exercises.forEach(ex=>{ if(!ex.name) return; const norm=normalizeName(ex.name); if(!stats[ex.name]) stats[ex.name]={count:0,lastDate:date,normalized:norm}; stats[ex.name].count++; if(date>stats[ex.name].lastDate) stats[ex.name].lastDate=date; }); });
+  // Union-find por proximidad: mismo normalizado, o distancia Levenshtein <=1 con longitud >=4.
+  const names=Object.keys(stats);
+  const parent:Record<string,string>={};
+  names.forEach(n=>{parent[n]=n;});
+  const find=(x:string):string=>{ while(parent[x]!==x){ parent[x]=parent[parent[x]]; x=parent[x]; } return x; };
+  const union=(a:string,b:string)=>{ const ra=find(a),rb=find(b); if(ra!==rb) parent[ra]=rb; };
+  for(let i=0;i<names.length;i++){
+    for(let j=i+1;j<names.length;j++){
+      const a=stats[names[i]].normalized, b=stats[names[j]].normalized;
+      if(a===b){ union(names[i],names[j]); continue; }
+      if(a.length>=4&&b.length>=4&&Math.abs(a.length-b.length)<=1&&levenshtein(a,b)<=1){ union(names[i],names[j]); }
+    }
+  }
   const groups:Record<string,string[]>={};
-  Object.entries(stats).forEach(([name,s])=>{ if(!groups[s.normalized]) groups[s.normalized]=[]; groups[s.normalized].push(name); });
+  names.forEach(n=>{ const root=find(n); if(!groups[root]) groups[root]=[]; groups[root].push(n); });
   const canonical:Record<string,string>={};
+  const merges:{from:string;to:string}[]=[];
   let changed=false;
-  Object.values(groups).forEach(variants=>{ if(variants.length<=1) return; const winner=variants.reduce((best,name)=>{ const a=stats[name],b=stats[best]; if(a.count>b.count) return name; if(a.count<b.count) return best; return a.lastDate>b.lastDate?name:best; },variants[0]); variants.forEach(v=>{ if(v!==winner){ canonical[v]=winner; changed=true; } }); });
-  if(!changed) return {sessions,changed:false};
+  Object.values(groups).forEach(variants=>{ if(variants.length<=1) return; const winner=variants.reduce((best,name)=>{ const a=stats[name],b=stats[best]; if(a.count>b.count) return name; if(a.count<b.count) return best; return a.lastDate>b.lastDate?name:best; },variants[0]); variants.forEach(v=>{ if(v!==winner){ canonical[v]=winner; merges.push({from:v,to:winner}); changed=true; } }); });
+  if(!changed) return {sessions,changed:false,canonical,merges};
   const newSessions:GymSessions={};
   Object.entries(sessions).forEach(([date,session])=>{ newSessions[date]={...session,exercises:session.exercises.map(ex=>({...ex,name:canonical[ex.name]||ex.name}))}; });
-  return {sessions:newSessions,changed:true};
+  return {sessions:newSessions,changed:true,canonical,merges};
+};
+const applyCanonicalToTemplate = (template:GymTemplate,canonical:Record<string,string>):{template:GymTemplate,changed:boolean} => {
+  let changed=false;
+  const newTemplate:GymTemplate={};
+  Object.entries(template).forEach(([key,day])=>{ newTemplate[key]={...day,exercises:day.exercises.map(ex=>{ const mapped=canonical[ex.name]; if(mapped&&mapped!==ex.name){ changed=true; return {...ex,name:mapped}; } return ex; })}; });
+  return {template:changed?newTemplate:template,changed};
+};
+const migrateTemplateToSingleDay = (template:GymTemplate):{template:GymTemplate,changed:boolean} => {
+  const keys=Object.keys(template);
+  if(keys.length===1&&keys[0]==="main") return {template,changed:false};
+  const allExercises:{id:string;name:string}[]=[];
+  const seenNorms=new Set<string>();
+  Object.values(template).forEach(day=>{ day.exercises.forEach(ex=>{ if(!ex.name) return; const norm=normalizeName(ex.name); if(!seenNorms.has(norm)){ seenNorms.add(norm); allExercises.push({id:ex.id,name:ex.name}); } }); });
+  const label=template.main?.label||template.A?.label||"Mi rutina";
+  return {template:{main:{label,exercises:allExercises.length>0?allExercises:DEFAULT_GYM_TEMPLATE.main.exercises}},changed:true};
 };
 const provider = new GoogleAuthProvider();
 
@@ -215,6 +243,7 @@ export default function App() {
   const [wellnessOpen,setWellnessOpen]=useState(false);
   const [streak,setStreak]=useState(0);
   const [notifBanner,setNotifBanner]=useState<{label:string;emoji:string}|null>(null);
+  const [mergeNotice,setMergeNotice]=useState<{merges:{from:string;to:string}[]}|null>(null);
   const notifiedRef=useRef<Set<string>>(new Set());
   const dayUnsubRef=useRef<(()=>void)|null>(null);
 
@@ -226,7 +255,6 @@ export default function App() {
   const [gymTemplate,setGymTemplate]=useState<GymTemplate>(()=>lsGet("gym:template")||DEFAULT_GYM_TEMPLATE);
   const [gymSessions,setGymSessions]=useState<GymSessions>(()=>lsGet("gym:sessions")||{});
   const [gymDate,setGymDate]=useState(today);
-  const [gymDayType,setGymDayType]=useState<string>("A");
   const [gymSession,setGymSession]=useState<GymSession|null>(null);
   const [lastGymSession,setLastGymSession]=useState<GymSession|null>(null);
   const [gymSelectedEx,setGymSelectedEx]=useState("");
@@ -289,8 +317,46 @@ export default function App() {
     if(!uid) return;
     getDoc(doc(db,`users/${uid}/settings/evals`)).then(snap=>{ if(snap.exists()){ const d=snap.data().data; setEvals(d); lsSet("progress:evals",d); } }).catch(()=>{});
     getDoc(doc(db,`users/${uid}/settings/plan`)).then(snap=>{ if(snap.exists()){ const d=snap.data().data; setMealPlan(d); lsSet("custom-meal-plan",d); } }).catch(()=>{});
-    getDoc(doc(db,`users/${uid}/settings/gymTemplates`)).then(snap=>{ if(snap.exists()){ const d=snap.data().data; const corrupt=d&&Object.values(d).some((day:any)=>Array.isArray(day?.exercises)&&day.exercises.length>10); if(corrupt){ setGymTemplate(DEFAULT_GYM_TEMPLATE); lsSet("gym:template",DEFAULT_GYM_TEMPLATE); setDoc(doc(db,`users/${uid}/settings/gymTemplates`),{data:DEFAULT_GYM_TEMPLATE}).catch(()=>{}); } else { setGymTemplate(d); lsSet("gym:template",d); } } }).catch(()=>{});
-    getDoc(doc(db,`users/${uid}/settings/gymSessions`)).then(snap=>{ if(snap.exists()){ let d=snap.data().data; const migrated=mergeExerciseDuplicates(d); if(migrated.changed){ d=migrated.sessions; setDoc(doc(db,`users/${uid}/settings/gymSessions`),{data:d}).catch(()=>{}); } setGymSessions(d); lsSet("gym:sessions",d); } }).catch(()=>{});
+    // Cargar template y sesiones juntos para migración coherente
+    Promise.all([
+      getDoc(doc(db,`users/${uid}/settings/gymTemplates`)).catch(()=>null),
+      getDoc(doc(db,`users/${uid}/settings/gymSessions`)).catch(()=>null),
+    ]).then(([tmplSnap,sessSnap])=>{
+      // Template
+      let template:GymTemplate=DEFAULT_GYM_TEMPLATE;
+      let templateChanged=false;
+      if(tmplSnap&&tmplSnap.exists()){
+        const raw=tmplSnap.data().data;
+        const corrupt=raw&&Object.values(raw).some((day:any)=>Array.isArray(day?.exercises)&&day.exercises.length>10);
+        if(corrupt){ template=DEFAULT_GYM_TEMPLATE; templateChanged=true; }
+        else { template=raw; }
+      }
+      // Migrar template a un único día "main"
+      const tmplMig=migrateTemplateToSingleDay(template);
+      if(tmplMig.changed){ template=tmplMig.template; templateChanged=true; }
+      // Sesiones
+      let sessions:GymSessions={};
+      let sessionsChanged=false;
+      let merges:{from:string;to:string}[]=[];
+      let canonical:Record<string,string>={};
+      if(sessSnap&&sessSnap.exists()){
+        sessions=sessSnap.data().data||{};
+        const merged=mergeExerciseDuplicates(sessions);
+        if(merged.changed){ sessions=merged.sessions; sessionsChanged=true; merges=merged.merges; canonical=merged.canonical; }
+      }
+      // Propagar canonical al template
+      if(Object.keys(canonical).length>0){
+        const tmplApply=applyCanonicalToTemplate(template,canonical);
+        if(tmplApply.changed){ template=tmplApply.template; templateChanged=true; }
+      }
+      // Persistir
+      setGymTemplate(template); lsSet("gym:template",template);
+      setGymSessions(sessions); lsSet("gym:sessions",sessions);
+      if(templateChanged) setDoc(doc(db,`users/${uid}/settings/gymTemplates`),{data:template}).catch(()=>{});
+      if(sessionsChanged) setDoc(doc(db,`users/${uid}/settings/gymSessions`),{data:sessions}).catch(()=>{});
+      // Mostrar toast informativo si hubo fusiones
+      if(merges.length>0){ setMergeNotice({merges}); setTimeout(()=>setMergeNotice(null),12000); }
+    });
   },[uid]);
 
   // ── Load Supabase files ──
@@ -350,11 +416,11 @@ export default function App() {
   useEffect(()=>{
     const dateStr=fmtDate(gymDate);
     const existing=gymSessions[dateStr];
-    if(existing){ setGymSession(existing); setGymDayType(existing.day); }
-    else { const tmpl=gymTemplate[gymDayType]; setGymSession({ day:gymDayType, exercises:tmpl.exercises.map(ex=>({id:ex.id,name:ex.name,sets:[{weight:0,reps:0}],notes:""})) }); }
-    const prev=Object.entries(gymSessions).filter(([d,s])=>d<dateStr&&s.day===gymDayType).sort(([a],[b])=>b.localeCompare(a))[0];
+    if(existing){ setGymSession(existing); }
+    else { const tmpl=gymTemplate.main||DEFAULT_GYM_TEMPLATE.main; setGymSession({ day:"main", exercises:tmpl.exercises.map(ex=>({id:ex.id,name:ex.name,sets:[{weight:0,reps:0}],notes:""})) }); }
+    const prev=Object.entries(gymSessions).filter(([d])=>d<dateStr).sort(([a],[b])=>b.localeCompare(a))[0];
     setLastGymSession(prev?prev[1]:null);
-  },[gymDate,gymDayType,gymSessions,gymTemplate]);
+  },[gymDate,gymSessions,gymTemplate]);
 
   // ── Notifications ──
   useEffect(()=>{
@@ -384,9 +450,9 @@ export default function App() {
   const updateSet=(exIdx:number,setIdx:number,field:keyof GymSet,val:number)=>{ if(!gymSession) return; const ex=gymSession.exercises.map((e,i)=>i!==exIdx?e:{...e,sets:e.sets.map((s,j)=>j!==setIdx?s:{...s,[field]:val})}); setGymSession({...gymSession,exercises:ex}); };
   const addSet=(exIdx:number)=>{ if(!gymSession) return; const last=gymSession.exercises[exIdx].sets.slice(-1)[0]||{weight:0,reps:0}; const ex=gymSession.exercises.map((e,i)=>i!==exIdx?e:{...e,sets:[...e.sets,{...last}]}); setGymSession({...gymSession,exercises:ex}); };
   const removeSet=(exIdx:number,setIdx:number)=>{ if(!gymSession||gymSession.exercises[exIdx].sets.length<=1) return; const ex=gymSession.exercises.map((e,i)=>i!==exIdx?e:{...e,sets:e.sets.filter((_,j)=>j!==setIdx)}); setGymSession({...gymSession,exercises:ex}); };
-  const addExercise=()=>{ if(!gymSession) return; const id=`${gymDayType.toLowerCase()}${Date.now()}`; const newEx={id,name:"Nuevo ejercicio",sets:[{weight:0,reps:0}],notes:""}; setGymSession({...gymSession,exercises:[...gymSession.exercises,newEx]}); };
+  const addExercise=()=>{ if(!gymSession) return; const id=`ex${Date.now()}`; const newEx={id,name:"Nuevo ejercicio",sets:[{weight:0,reps:0}],notes:""}; setGymSession({...gymSession,exercises:[...gymSession.exercises,newEx]}); };
   const removeExercise=(exIdx:number)=>{ if(!gymSession||gymSession.exercises.length<=1) return; setGymSession({...gymSession,exercises:gymSession.exercises.filter((_,i)=>i!==exIdx)}); };
-  const updateTemplateName=(day:string,label:string)=>{ const tmpl={...gymTemplate,[day]:{...gymTemplate[day],label}}; saveGymTemplate(tmpl); };
+  const updateTemplateName=(label:string)=>{ const tmpl={...gymTemplate,main:{...(gymTemplate.main||DEFAULT_GYM_TEMPLATE.main),label}}; saveGymTemplate(tmpl); };
 
   // ── PDF upload — Plan alimentación (Gemini) ──
   const handlePDFUpload=async(e:React.ChangeEvent<HTMLInputElement>)=>{ const file=e.target.files?.[0]; if(!file||!apiKey){setPdfError("Ingresa tu API Key primero."); return;} setPdfLoading(true); setPdfError(""); setPdfPreview(null); if(fileRef.current) fileRef.current.value=""; try { const toB64=(f:File):Promise<string>=>new Promise((res,rej)=>{ const r=new FileReader(); r.onload=ev=>res((ev.target?.result as string).split(",")[1]); r.onerror=rej; r.readAsDataURL(f); }); const base64=await toB64(file); const resp=await geminiWithPDF(apiKey,base64,`Analiza este plan de alimentación. Devuelve ÚNICAMENTE JSON válido sin texto ni backticks con claves: desayuno, colacion1, almuerzo, colacion2, cena, colacion3, postEntreno. Cada comida: {label, time, emoji, categories:[{id, label, single, max?, options:[]}]}. Extrae las opciones reales del PDF.`); const data=await resp.json(); const text=geminiText(data); try { const parsed=JSON.parse(text.replace(/```json|```/g,"").trim()); if(!parsed.desayuno||!parsed.almuerzo) throw new Error(); setPdfPreview(parsed); } catch { setPdfError("No se pudo interpretar el plan."); } } catch(err:any){ setPdfError(`Error: ${err.message||"Verifica tu API Key."}`); } setPdfLoading(false); };
@@ -396,7 +462,7 @@ export default function App() {
   const handleEvalPDFUpload=async(e:React.ChangeEvent<HTMLInputElement>)=>{ const file=e.target.files?.[0]; if(!file||!apiKey){setEvalPdfError("Configura tu API Key primero."); return;} setEvalPdfLoading(true); setEvalPdfError(""); if(evalFileRef.current) evalFileRef.current.value=""; try { const toB64=(f:File):Promise<string>=>new Promise((res,rej)=>{ const r=new FileReader(); r.onload=ev=>res((ev.target?.result as string).split(",")[1]); r.onerror=rej; r.readAsDataURL(f); }); const base64=await toB64(file); const resp=await geminiWithPDF(apiKey,base64,`Analiza este informe de evaluación antropométrica y extrae los datos. Devuelve ÚNICAMENTE JSON válido sin texto ni backticks con esta estructura exacta:\n{"date":"DD/MM/AA","weight":0,"fatPct":0,"muscleKg":0,"musOseo":0,"endo":0,"meso":0,"ecto":0,"sdd":0,"brazo":0,"muslo":0,"pant":0}\nExtrae los valores numéricos exactos del informe. Si algún valor no aparece, usa 0.`); const data=await resp.json(); const text=geminiText(data); try { const parsed=JSON.parse(text.replace(/```json|```/g,"").trim()); if(!parsed.date||!parsed.fatPct) throw new Error(); setNewEval({date:parsed.date,weight:parsed.weight||"",fatPct:parsed.fatPct||"",muscleKg:parsed.muscleKg||"",musOseo:parsed.musOseo||"",endo:parsed.endo||"",meso:parsed.meso||"",ecto:parsed.ecto||"",sdd:parsed.sdd||"",brazo:parsed.brazo||"",muslo:parsed.muslo||"",pant:parsed.pant||""}); setEvalPdfError(""); } catch { setEvalPdfError("No se pudo extraer los datos. Verifica que sea un informe antropométrico."); } } catch(err:any){ setEvalPdfError(`Error: ${err.message||"Verifica tu API Key y conexión."}`); } setEvalPdfLoading(false); };
 
   // ── AI Analysis (Gemini) ──
-  const runAiAnalysis=async()=>{ if(!apiKey){alert("Configura tu API Key primero.");return;} setAiLoading(true); setAiAnalysis(""); const ws=getWeekStart(today,weekOffset); const wDays:any[]=[]; for(let i=0;i<7;i++){ const d=new Date(ws.getTime()+i*86400000); const dayD=weekData[fmtDate(d)]; if(dayD){ const wl=dayD.wellness||{}; const exArr=Array.isArray(wl.exercise)?wl.exercise:(wl.exercise?[wl.exercise]:[]); const gym=gymSessions[fmtDate(d)]; const alcRaw=wl.alcohol; const alcObj=typeof alcRaw==="object"&&alcRaw!==null?alcRaw:(typeof alcRaw==="number"&&alcRaw>0?{otro:alcRaw}:{}); const alcTotal=(alcObj.vino||0)+(alcObj.cerveza||0)+(alcObj.destilado||0)+(alcObj.otro||0); wDays.push({fecha:fmtDate(d),adherencia:`${Math.round(MEAL_ORDER.filter(id=>mealPlan[id]?.categories.every(c=>(dayD[id]?.[c.id]||[]).length>0)).length/MEAL_ORDER.length*100)}%`,agua:`${(dayD.water||0)*300}cc`,ejercicio:exArr.join(", ")||"no registrado",gym:gym?`${gymTemplate[gym.day]?.label||"Gym"} — ${gym.exercises.map(e=>`${e.name}: ${e.sets.map(s=>`${s.weight}kg×${s.reps}`).join(", ")}`).join(" | ")}`:null,sueño:`${wl.sleep||0}h`,energia:`${wl.energy||0}/5`,animo:`${wl.mood||0}/5`,dolor:`${["Sin dolor","Leve","Moderado","Fuerte","Muy fuerte"][wl.musclePain||0]}`,cafes:wl.coffees||0,cafeina:wl.caffeinePills||0,alcohol:alcTotal>0?`${alcTotal} total (vino:${alcObj.vino||0} copa150ml, cerveza:${alcObj.cerveza||0} vaso330ml, destilado:${alcObj.destilado||0} trago45ml, otro:${alcObj.otro||0})`:"0",cigarrillos:wl.cigarettes||0}); } } try { const prompt=`Eres un coach de bienestar, nutrición y entrenamiento. Analiza los datos de esta semana y dame un análisis breve (máximo 6 puntos) con observaciones concretas y 2-3 recomendaciones prácticas. Sé directo y motivador.\n\nDatos:\n${JSON.stringify(wDays,null,2)}\n\nMétricas actuales: Grasa ${evals[evals.length-1]?.fatPct}% (meta 10.5%), Músculo ${evals[evals.length-1]?.muscleKg}kg (meta 49kg).`; const aiResp=await geminiTextOnly(apiKey,prompt); const aiJson=await aiResp.json(); if(aiJson.error){ setAiAnalysis(`⚠️ Error Gemini: ${aiJson.error.message||"API Key inválida o sin cuota."}`); } else { const txt=geminiText(aiJson); setAiAnalysis(txt||"La IA no devolvió texto. Revisa tu API Key en Config."); } } catch(err:any){ setAiAnalysis(`Error al conectar con Gemini: ${err.message||"Sin conexión."}`); } setAiLoading(false); };
+  const runAiAnalysis=async()=>{ if(!apiKey){alert("Configura tu API Key primero.");return;} setAiLoading(true); setAiAnalysis(""); const ws=getWeekStart(today,weekOffset); const wDays:any[]=[]; for(let i=0;i<7;i++){ const d=new Date(ws.getTime()+i*86400000); const dayD=weekData[fmtDate(d)]; if(dayD){ const wl=dayD.wellness||{}; const exArr=Array.isArray(wl.exercise)?wl.exercise:(wl.exercise?[wl.exercise]:[]); const gym=gymSessions[fmtDate(d)]; const alcRaw=wl.alcohol; const alcObj=typeof alcRaw==="object"&&alcRaw!==null?alcRaw:(typeof alcRaw==="number"&&alcRaw>0?{otro:alcRaw}:{}); const alcTotal=(alcObj.vino||0)+(alcObj.cerveza||0)+(alcObj.destilado||0)+(alcObj.otro||0); wDays.push({fecha:fmtDate(d),adherencia:`${Math.round(MEAL_ORDER.filter(id=>mealPlan[id]?.categories.every(c=>(dayD[id]?.[c.id]||[]).length>0)).length/MEAL_ORDER.length*100)}%`,agua:`${(dayD.water||0)*300}cc`,ejercicio:exArr.join(", ")||"no registrado",gym:gym?`${gymTemplate.main?.label||"Gym"} — ${gym.exercises.map(e=>`${e.name}: ${e.sets.map(s=>`${s.weight}kg×${s.reps}`).join(", ")}`).join(" | ")}`:null,sueño:`${wl.sleep||0}h`,energia:`${wl.energy||0}/5`,animo:`${wl.mood||0}/5`,dolor:`${["Sin dolor","Leve","Moderado","Fuerte","Muy fuerte"][wl.musclePain||0]}`,cafes:wl.coffees||0,cafeina:wl.caffeinePills||0,alcohol:alcTotal>0?`${alcTotal} total (vino:${alcObj.vino||0} copa150ml, cerveza:${alcObj.cerveza||0} vaso330ml, destilado:${alcObj.destilado||0} trago45ml, otro:${alcObj.otro||0})`:"0",cigarrillos:wl.cigarettes||0}); } } try { const prompt=`Eres un coach de bienestar, nutrición y entrenamiento. Analiza los datos de esta semana y dame un análisis breve (máximo 6 puntos) con observaciones concretas y 2-3 recomendaciones prácticas. Sé directo y motivador.\n\nDatos:\n${JSON.stringify(wDays,null,2)}\n\nMétricas actuales: Grasa ${evals[evals.length-1]?.fatPct}% (meta 10.5%), Músculo ${evals[evals.length-1]?.muscleKg}kg (meta 49kg).`; const aiResp=await geminiTextOnly(apiKey,prompt); const aiJson=await aiResp.json(); if(aiJson.error){ setAiAnalysis(`⚠️ Error Gemini: ${aiJson.error.message||"API Key inválida o sin cuota."}`); } else { const txt=geminiText(aiJson); setAiAnalysis(txt||"La IA no devolvió texto. Revisa tu API Key en Config."); } } catch(err:any){ setAiAnalysis(`Error al conectar con Gemini: ${err.message||"Sin conexión."}`); } setAiLoading(false); };
 
   // ── Supabase file upload ──
   const handleSupabaseUpload=async(e:React.ChangeEvent<HTMLInputElement>,tipo:"control"|"pauta")=>{ const file=e.target.files?.[0]; if(!file||!uid) return; const setUploading=tipo==="control"?setUploadingControl:setUploadingPauta; try { setUploading(true); const fileExt=file.name.split(".").pop(); const fileName=`${uid}/${Date.now()}_${tipo}.${fileExt}`; const { error:uploadError }=await supabase.storage.from("nutricion-docs").upload(fileName,file); if(uploadError) throw uploadError; const { data }=supabase.storage.from("nutricion-docs").getPublicUrl(fileName); if(tipo==="control") setControlUrl(data.publicUrl); else setPautaUrl(data.publicUrl); alert("¡Archivo subido con éxito!"); } catch(err:any){ alert("Error al subir: "+(err.message||"Verifica las políticas de Supabase")); } finally { setUploading(false); } };
@@ -448,6 +514,16 @@ export default function App() {
       <div style={{width:"100%",maxWidth:maxW,position:"relative",paddingBottom:84}}>
 
         {notifBanner&&<div style={{position:"fixed",top:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:maxW,background:G.dark,color:"#fff",padding:"13px 18px",display:"flex",alignItems:"center",justifyContent:"space-between",zIndex:200,boxShadow:"0 4px 20px rgba(0,0,0,0.3)"}}><span style={{fontSize:16,fontWeight:600}}>{notifBanner.emoji} ¡Hora de {notifBanner.label}!</span><button onClick={()=>setNotifBanner(null)} style={{background:"transparent",border:"none",color:"#fff",fontSize:24,cursor:"pointer",lineHeight:1}}>×</button></div>}
+
+        {mergeNotice&&<div style={{position:"fixed",top:notifBanner?56:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:maxW,background:G.green,color:"#fff",padding:"12px 16px",zIndex:199,boxShadow:"0 4px 20px rgba(0,0,0,0.25)"}}>
+          <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:10}}>
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{fontSize:14,fontWeight:700,marginBottom:4}}>✓ Se unificaron {mergeNotice.merges.length} {mergeNotice.merges.length===1?"ejercicio duplicado":"ejercicios duplicados"}</div>
+              <div style={{fontSize:12,opacity:0.95,lineHeight:1.5}}>{mergeNotice.merges.slice(0,4).map((m,i)=><div key={i}>{m.from} → <b>{m.to}</b></div>)}{mergeNotice.merges.length>4&&<div style={{opacity:0.85,fontStyle:"italic" as const}}>+ {mergeNotice.merges.length-4} más…</div>}</div>
+            </div>
+            <button onClick={()=>setMergeNotice(null)} style={{background:"transparent",border:"none",color:"#fff",fontSize:22,cursor:"pointer",lineHeight:1,padding:"0 4px",flexShrink:0}}>×</button>
+          </div>
+        </div>}
 
         <div style={{background:`linear-gradient(150deg,${G.dark},${G.mid})`,padding:isMobile?"18px 18px 16px":"22px 26px 18px",color:"#fff"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
@@ -565,17 +641,11 @@ export default function App() {
                 <NBtn onClick={()=>{ const d=new Date(gymDate); d.setDate(d.getDate()+1); setGymDate(d); }}>›</NBtn>
               </div>
             </Card>
-            <div style={{display:"flex",gap:10,marginBottom:14}}>
-              {(["A","B"] as const).map(day=>(
-                <div key={day} style={{flex:1}}>
-                  <button onClick={()=>setGymDayType(day)} style={{width:"100%",padding:"13px 10px",border:`2px solid ${gymDayType===day?G.mid:G.border}`,borderRadius:13,background:gymDayType===day?G.light:G.white,cursor:"pointer"}}>
-                    <div style={{fontWeight:800,fontSize:15,color:gymDayType===day?G.dark:G.sub}}>{gymTemplate[day]?.label||`Día ${day}`}</div>
-                    <div style={{fontSize:12,color:G.muted,marginTop:2}}>{gymTemplate[day]?.exercises.length||0} ejercicios</div>
-                  </button>
-                  {gymDayType===day&&<input value={gymTemplate[day]?.label||""} onChange={e=>updateTemplateName(day,e.target.value)} placeholder={`Nombre Día ${day}`} style={{...inp,marginTop:7,fontSize:13,padding:"8px 12px"}}/>}
-                </div>
-              ))}
-            </div>
+            <Card style={{marginBottom:14}}>
+              <SLabel>💪 Nombre de la rutina</SLabel>
+              <input value={gymTemplate.main?.label||""} onChange={e=>updateTemplateName(e.target.value)} placeholder="Mi rutina" style={{...inp,fontSize:15,padding:"10px 13px"}}/>
+              <div style={{fontSize:12,color:G.muted,marginTop:8}}>{gymTemplate.main?.exercises.length||0} ejercicios en la plantilla</div>
+            </Card>
             {lastGymSession&&<Card style={{background:"#fff8f0",border:`1.5px solid ${G.warm}`}}><div style={{fontWeight:700,fontSize:14,color:G.warm,marginBottom:8}}>🏆 Supera estos registros</div><div style={{display:"flex",flexDirection:"column" as const,gap:5}}>{lastGymSession.exercises.map(ex=>{ const maxSet=ex.sets.reduce((best,s)=>(s.weight||0)>(best.weight||0)?s:best,ex.sets[0]); return maxSet?.weight?<div key={ex.id} style={{fontSize:13,color:G.sub,display:"flex",justifyContent:"space-between"}}><span style={{fontWeight:600,color:G.text}}>{ex.name}</span><span>Max <b style={{color:G.warm}}>{maxSet.weight}kg</b> × {maxSet.reps} reps</span></div>:null; })}</div></Card>}
             {gymSession?.exercises.map((ex,exIdx)=>{
               const lastEx=lastGymSession?.exercises.find(e=>e.id===ex.id||e.name===ex.name);
