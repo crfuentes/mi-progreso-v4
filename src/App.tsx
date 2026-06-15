@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine, ResponsiveContainer, Legend } from "recharts";
 import { db, auth } from "./firebase";
 import { doc, getDoc, setDoc, onSnapshot } from "firebase/firestore";
@@ -98,6 +98,21 @@ const sameDay = (a:Date,b:Date) => fmtDate(a)===fmtDate(b);
 const cap = (s:string) => s.charAt(0).toUpperCase()+s.slice(1);
 const getWeekStart = (base:Date,offset:number) => { const d=new Date(base); d.setHours(0,0,0,0); const dow=d.getDay(); d.setDate(d.getDate()+(dow===0?-6:1-dow)+offset*7); return d; };
 const avg = (arr:number[]) => arr.length?+(arr.reduce((a,b)=>a+b,0)/arr.length).toFixed(1):0;
+const normalizeName = (s:string):string => s.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().trim().replace(/\s+/g," ");
+const levenshtein = (a:string,b:string):number => { if(a===b) return 0; if(!a.length) return b.length; if(!b.length) return a.length; let prev=Array.from({length:b.length+1},(_,i)=>i); for(let i=0;i<a.length;i++){ const curr=[i+1]; for(let j=0;j<b.length;j++){ curr.push(Math.min(prev[j+1]+1,curr[j]+1,prev[j]+(a[i]===b[j]?0:1))); } prev=curr; } return prev[b.length]; };
+const mergeExerciseDuplicates = (sessions:GymSessions):{sessions:GymSessions,changed:boolean} => {
+  const stats:Record<string,{count:number,lastDate:string,normalized:string}>={};
+  Object.entries(sessions).forEach(([date,session])=>{ session.exercises.forEach(ex=>{ if(!ex.name) return; const norm=normalizeName(ex.name); if(!stats[ex.name]) stats[ex.name]={count:0,lastDate:date,normalized:norm}; stats[ex.name].count++; if(date>stats[ex.name].lastDate) stats[ex.name].lastDate=date; }); });
+  const groups:Record<string,string[]>={};
+  Object.entries(stats).forEach(([name,s])=>{ if(!groups[s.normalized]) groups[s.normalized]=[]; groups[s.normalized].push(name); });
+  const canonical:Record<string,string>={};
+  let changed=false;
+  Object.values(groups).forEach(variants=>{ if(variants.length<=1) return; const winner=variants.reduce((best,name)=>{ const a=stats[name],b=stats[best]; if(a.count>b.count) return name; if(a.count<b.count) return best; return a.lastDate>b.lastDate?name:best; },variants[0]); variants.forEach(v=>{ if(v!==winner){ canonical[v]=winner; changed=true; } }); });
+  if(!changed) return {sessions,changed:false};
+  const newSessions:GymSessions={};
+  Object.entries(sessions).forEach(([date,session])=>{ newSessions[date]={...session,exercises:session.exercises.map(ex=>({...ex,name:canonical[ex.name]||ex.name}))}; });
+  return {sessions:newSessions,changed:true};
+};
 const provider = new GoogleAuthProvider();
 
 // ── Gemini API helpers ─────────────────────────────────────────────────────
@@ -133,6 +148,39 @@ const Chip = ({label,active,onClick,color}:any) => <button onClick={onClick} sty
 const Bar = ({pct,color,height=7}:any) => <div style={{background:G.border,borderRadius:99,height,overflow:"hidden"}}><div style={{background:color,height:"100%",borderRadius:99,width:`${Math.min(pct,100)}%`,transition:"width 0.4s"}}/></div>;
 const Card = ({children,style}:any) => <div style={{background:G.white,borderRadius:18,padding:"18px",boxShadow:"0 2px 12px rgba(14,32,68,0.07)",marginBottom:14,...style}}>{children}</div>;
 const SLabel = ({children}:any) => <div style={{fontSize:12,fontWeight:700,color:G.muted,textTransform:"uppercase" as const,letterSpacing:1,marginBottom:8}}>{children}</div>;
+const ExerciseNameInput = ({value,onChange,knownNames,placeholder}:{value:string;onChange:(v:string)=>void;knownNames:string[];placeholder?:string}) => {
+  const [focused,setFocused]=useState(false);
+  const [alertDup,setAlertDup]=useState<string|null>(null);
+  const normalizedKnown=useMemo(()=>knownNames.map(n=>({original:n,normalized:normalizeName(n)})),[knownNames]);
+  const valueNorm=normalizeName(value);
+  const suggestions=focused&&value.trim().length>=2
+    ? normalizedKnown.filter(n=>n.original!==value&&n.normalized!==valueNorm&&n.normalized.includes(valueNorm)).map(n=>n.original).slice(0,5)
+    : [];
+  const handleBlur=()=>{
+    setTimeout(()=>setFocused(false),200);
+    if(value.trim()&&knownNames.length>0){
+      const exactMatch=normalizedKnown.find(n=>n.normalized===valueNorm&&n.original!==value);
+      const closeMatch=!exactMatch?normalizedKnown.find(n=>n.original!==value&&valueNorm.length>=4&&levenshtein(n.normalized,valueNorm)<=1):null;
+      const match=exactMatch||closeMatch;
+      if(match) setAlertDup(match.original);
+    }
+  };
+  return (
+    <div style={{position:"relative" as const,flex:1}}>
+      <input value={value} onChange={e=>{onChange(e.target.value); setAlertDup(null);}} onFocus={()=>{setFocused(true); setAlertDup(null);}} onBlur={handleBlur} placeholder={placeholder} style={{width:"100%",border:"none",borderBottom:`2px solid ${G.border}`,background:"transparent",fontSize:16,fontWeight:700,color:G.text,outline:"none",padding:"2px 0",boxSizing:"border-box" as const}}/>
+      {suggestions.length>0&&<div style={{position:"absolute" as const,top:"100%",left:0,right:0,background:G.white,border:`1.5px solid ${G.border}`,borderRadius:9,marginTop:4,boxShadow:"0 4px 12px rgba(14,32,68,0.12)",zIndex:10,maxHeight:200,overflowY:"auto" as const}}>
+        {suggestions.map(s=><div key={s} onMouseDown={e=>{e.preventDefault(); onChange(s); setFocused(false); setAlertDup(null);}} style={{padding:"9px 13px",fontSize:14,color:G.text,cursor:"pointer",borderBottom:`1px solid ${G.border}`}}>{s}</div>)}
+      </div>}
+      {alertDup&&<div style={{marginTop:7,padding:"8px 11px",background:"#fff8f0",border:`1.5px solid ${G.warm}`,borderRadius:9,fontSize:13,color:G.dark,display:"flex",alignItems:"center",gap:8,flexWrap:"wrap" as const}}>
+        <span>¿Quisiste decir <b style={{color:G.warm}}>{alertDup}</b>?</span>
+        <div style={{display:"flex",gap:6,marginLeft:"auto" as const}}>
+          <button onMouseDown={e=>{e.preventDefault(); onChange(alertDup); setAlertDup(null);}} style={{padding:"5px 11px",background:G.warm,border:"none",borderRadius:7,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer"}}>Sí</button>
+          <button onMouseDown={e=>{e.preventDefault(); setAlertDup(null);}} style={{padding:"5px 11px",background:"transparent",border:`1.5px solid ${G.border}`,borderRadius:7,color:G.sub,fontSize:12,cursor:"pointer"}}>No</button>
+        </div>
+      </div>}
+    </div>
+  );
+};
 const SYNC_LABEL:Record<SyncStatus,string> = {loading:"Conectando...",synced:"☁️ Sincronizado",syncing:"⬆️ Guardando...",offline:"📴 Sin conexión",error:"⚠️ Error sync"};
 const SYNC_COLOR:Record<SyncStatus,string> = {loading:"#aaa",synced:G.green,syncing:G.accent,offline:G.warm,error:G.red};
 
@@ -242,7 +290,7 @@ export default function App() {
     getDoc(doc(db,`users/${uid}/settings/evals`)).then(snap=>{ if(snap.exists()){ const d=snap.data().data; setEvals(d); lsSet("progress:evals",d); } }).catch(()=>{});
     getDoc(doc(db,`users/${uid}/settings/plan`)).then(snap=>{ if(snap.exists()){ const d=snap.data().data; setMealPlan(d); lsSet("custom-meal-plan",d); } }).catch(()=>{});
     getDoc(doc(db,`users/${uid}/settings/gymTemplates`)).then(snap=>{ if(snap.exists()){ const d=snap.data().data; const corrupt=d&&Object.values(d).some((day:any)=>Array.isArray(day?.exercises)&&day.exercises.length>10); if(corrupt){ setGymTemplate(DEFAULT_GYM_TEMPLATE); lsSet("gym:template",DEFAULT_GYM_TEMPLATE); setDoc(doc(db,`users/${uid}/settings/gymTemplates`),{data:DEFAULT_GYM_TEMPLATE}).catch(()=>{}); } else { setGymTemplate(d); lsSet("gym:template",d); } } }).catch(()=>{});
-    getDoc(doc(db,`users/${uid}/settings/gymSessions`)).then(snap=>{ if(snap.exists()){ const d=snap.data().data; setGymSessions(d); lsSet("gym:sessions",d); } }).catch(()=>{});
+    getDoc(doc(db,`users/${uid}/settings/gymSessions`)).then(snap=>{ if(snap.exists()){ let d=snap.data().data; const migrated=mergeExerciseDuplicates(d); if(migrated.changed){ d=migrated.sessions; setDoc(doc(db,`users/${uid}/settings/gymSessions`),{data:d}).catch(()=>{}); } setGymSessions(d); lsSet("gym:sessions",d); } }).catch(()=>{});
   },[uid]);
 
   // ── Load Supabase files ──
@@ -536,7 +584,7 @@ export default function App() {
                 <Card key={ex.id}>
                   <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:13}}>
                     <div style={{width:30,height:30,borderRadius:"50%",background:G.mid,color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:800,flexShrink:0}}>{exIdx+1}</div>
-                    <input value={ex.name} onChange={e=>updateGymExName(exIdx,e.target.value)} style={{flex:1,border:"none",borderBottom:`2px solid ${G.border}`,background:"transparent",fontSize:16,fontWeight:700,color:G.text,outline:"none",padding:"2px 0"}} placeholder="Nombre del ejercicio"/>
+                    <ExerciseNameInput value={ex.name} onChange={v=>updateGymExName(exIdx,v)} knownNames={gymExNames} placeholder="Nombre del ejercicio"/>
                     {gymSession.exercises.length>1&&<button onClick={()=>removeExercise(exIdx)} style={{background:"transparent",border:"none",color:G.red,cursor:"pointer",fontSize:20,lineHeight:1,padding:"0 4px",flexShrink:0}}>×</button>}
                   </div>
                   {lastEx&&<div style={{fontSize:12,color:G.muted,marginBottom:12,padding:"8px 11px",background:G.bg,borderRadius:9,border:`1px solid ${G.border}`}}>Anterior: {lastEx.sets.map(s=>`${s.weight}kg×${s.reps}`).join(" · ")} {lastMaxWeight>0&&<span style={{color:G.warm,fontWeight:700}}>· Max: {lastMaxWeight}kg</span>}</div>}
