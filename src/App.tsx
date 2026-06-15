@@ -6,7 +6,8 @@ import { signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from
 import { supabase } from "./supabase";
 
 // ── Types ──────────────────────────────────────────────────────────────────
-interface Cat { id:string; label:string; single:boolean; max?:number; options:string[]; }
+interface FoodOption { id:string; label:string; amount:string; excludesGroups?:string[]; }
+interface Cat { id:string; label:string; single:boolean; max?:number; required?:boolean; excludesGroups?:string[]; options:FoodOption[]; }
 interface MealDef { label:string; time:string; emoji:string; categories:Cat[]; }
 type Plan = Record<string,MealDef>;
 type SyncStatus = "loading"|"synced"|"syncing"|"offline"|"error";
@@ -28,36 +29,231 @@ const G = {
 // ── Meal Plan ──────────────────────────────────────────────────────────────
 const DEFAULT_PLAN: Plan = {
   desayuno: { label:"Desayuno", time:"9:00", emoji:"☀️", categories:[
-    {id:"lacteo",label:"Lácteo",single:true,options:["Yogurt descremado","Leche descremada 200cc"]},
-    {id:"pan",label:"Pan / Carbohidrato",single:true,options:["3 rbas. pan perfecto","2 rbas. pan integral","1 pan pita integral","½ hallulla","1 diente pan francés","2 fajitas (M)"]},
-    {id:"proteina",label:"Proteína",single:true,options:["4 huevos (2 yemas)","5 tajadas quesillo 150g","3 lám. jamón pavo/pollo","100g pollo cocido","1 lata atún","3 huevos cocidos"]},
-    {id:"grasa",label:"Grasa saludable",single:true,options:["1 cda palta","6 almendras","7 maníes s/sal","1 cdta mantequilla maní","10g chía","1 nuez","10g linaza"]}
+    {id:"lacteo",label:"Lácteo",single:true,required:true,options:[
+      {id:"des_yogurt",label:"Yogurt descremado",amount:"1 unidad"},
+      {id:"des_leche",label:"Leche descremada 200cc",amount:"200 cc"}
+    ]},
+    {id:"pan",label:"Pan / Carbohidrato",single:true,required:true,options:[
+      {id:"des_panperfecto",label:"3 rbas. pan perfecto",amount:"3 rebanadas"},
+      {id:"des_panintegral",label:"2 rbas. pan integral",amount:"2 rebanadas"},
+      {id:"des_panpita",label:"1 pan pita integral",amount:"1 unidad"},
+      {id:"des_hallulla",label:"½ hallulla",amount:"½ unidad"},
+      {id:"des_panfrances",label:"1 diente pan francés",amount:"1 diente"},
+      {id:"des_fajitas",label:"2 fajitas (M)",amount:"2 unidades medianas"}
+    ]},
+    {id:"proteina",label:"Proteína",single:true,required:true,options:[
+      {id:"des_huevos4",label:"4 huevos (2 yemas)",amount:"4 unidades"},
+      {id:"des_quesillo",label:"5 tajadas quesillo 150g",amount:"150 g"},
+      {id:"des_jamon",label:"3 lám. jamón pavo/pollo",amount:"3 láminas"},
+      {id:"des_pollo",label:"100g pollo cocido",amount:"100 g"},
+      {id:"des_atun",label:"1 lata atún",amount:"1 lata"},
+      {id:"des_huevos3",label:"3 huevos cocidos",amount:"3 unidades",excludesGroups:["grasa"]}
+    ]},
+    {id:"grasa",label:"Grasa saludable",single:true,required:true,options:[
+      {id:"des_palta",label:"1 cda palta",amount:"1 cucharada sopera"},
+      {id:"des_almendras",label:"6 almendras",amount:"6 unidades"},
+      {id:"des_manies",label:"7 maníes s/sal",amount:"7 unidades"},
+      {id:"des_mantmani",label:"1 cdta mantequilla maní",amount:"10 g"},
+      {id:"des_chia",label:"10g chía",amount:"10 g"},
+      {id:"des_nuez",label:"1 nuez",amount:"1 unidad"},
+      {id:"des_linaza",label:"10g linaza",amount:"10 g"}
+    ]}
   ]},
   colacion1: { label:"Colación", time:"11:00", emoji:"🍎", categories:[
-    {id:"fruta",label:"Fruta",single:true,options:["1 manzana","1 pera","1 naranja","½ plátano","2 kiwis","1 tz frutillas","1 tz arándanos","1 durazno","2 mandarinas","15 cerezas","¾ tz piña","1 tz sandía","1 tz melón","1 tz frambuesas","½ tz mora","1 pepino grande"]}
+    {id:"fruta",label:"Fruta",single:true,required:true,options:[
+      {id:"c1_manzana",label:"1 manzana",amount:"1 unidad"},
+      {id:"c1_pera",label:"1 pera",amount:"1 unidad"},
+      {id:"c1_naranja",label:"1 naranja",amount:"1 unidad"},
+      {id:"c1_platano",label:"½ plátano",amount:"½ unidad"},
+      {id:"c1_kiwi",label:"2 kiwis",amount:"2 unidades"},
+      {id:"c1_frutillas",label:"1 tz frutillas",amount:"200 cc"},
+      {id:"c1_arandanos",label:"1 tz arándanos",amount:"200 cc"},
+      {id:"c1_durazno",label:"1 durazno",amount:"1 unidad"},
+      {id:"c1_mandarina",label:"2 mandarinas",amount:"2 unidades"},
+      {id:"c1_cerezas",label:"15 cerezas",amount:"15 unidades"},
+      {id:"c1_pina",label:"¾ tz piña",amount:"130 g"},
+      {id:"c1_sandia",label:"1 tz sandía",amount:"200 g"},
+      {id:"c1_melon",label:"1 tz melón",amount:"180 g"},
+      {id:"c1_frambuesas",label:"1 tz frambuesas",amount:"200 cc"},
+      {id:"c1_mora",label:"½ tz mora",amount:"100 cc"},
+      {id:"c1_pepino",label:"1 pepino grande",amount:"1 unidad grande"}
+    ]}
   ]},
   almuerzo: { label:"Almuerzo", time:"13:00–14:00", emoji:"🍽️", categories:[
-    {id:"libre",label:"Ensalada libre (elige 2)",single:false,max:2,options:["Achicoria","Apio","Espinaca cruda","Lechuga","Pepino","Pimiento morrón","Repollo","Zapallo italiano","Acelga cruda"]},
-    {id:"general",label:"Ensalada general (elige 1)",single:true,options:["1 tomate","½ tz zanahoria cruda","¾ tz cebolla","1½ tz champiñones","½ tz palmitos","½ tz acelga cocida","1 alcachofa chica","½ tz betarraga","1 tz brócoli","1 tz coliflor","5 espárragos","¾ tz porotos verdes","1 tz zanahoria cocida","1 tz zapallo italiano cocido","½ tz zapallo camote"]},
-    {id:"proteina",label:"Proteína",single:true,options:["150g pollo","150g carne magra","1½ lata atún","3 trozos jurel 150g","150g pavo","150g salmón/pescado"]},
-    {id:"carbo",label:"Carbohidrato",single:true,options:["1 tz arroz cocido","1 tz fideos cocidos","270g papas cocidas","1 tz quínoa","1 tz cus-cus","3 fajitas (M)","210g puré de papas","210g papas horneadas","Porotos + ½ tz arroz","Lentejas + ½ tz fideos","Garbanzos + ½ tz arroz"]}
+    {id:"libre",label:"Ensalada libre (elige 2)",single:false,max:2,required:true,options:[
+      {id:"al_achicoria",label:"Achicoria",amount:"1 taza"},
+      {id:"al_apio",label:"Apio",amount:"1 taza"},
+      {id:"al_espinaca_c",label:"Espinaca cruda",amount:"1 taza"},
+      {id:"al_lechuga",label:"Lechuga",amount:"1 taza"},
+      {id:"al_pepino",label:"Pepino",amount:"1 taza"},
+      {id:"al_pimiento",label:"Pimiento morrón",amount:"1 taza"},
+      {id:"al_repollo",label:"Repollo",amount:"1 taza"},
+      {id:"al_zapallo_c",label:"Zapallo italiano",amount:"1 taza cruda"},
+      {id:"al_acelga_c",label:"Acelga cruda",amount:"1 taza"}
+    ]},
+    {id:"general",label:"Ensalada general (elige 1)",single:true,required:true,options:[
+      {id:"al_tomate",label:"1 tomate",amount:"1 unidad"},
+      {id:"al_zanahoria_c",label:"½ tz zanahoria cruda",amount:"100 g"},
+      {id:"al_cebolla",label:"¾ tz cebolla",amount:"150 g"},
+      {id:"al_champinones",label:"1½ tz champiñones",amount:"300 g"},
+      {id:"al_palmitos",label:"½ tz palmitos",amount:"100 g"},
+      {id:"al_acelga",label:"½ tz acelga cocida",amount:"100 g"},
+      {id:"al_alcachofa",label:"1 alcachofa chica",amount:"1 unidad chica"},
+      {id:"al_betarraga",label:"½ tz betarraga",amount:"100 g"},
+      {id:"al_brocoli",label:"1 tz brócoli",amount:"200 g"},
+      {id:"al_coliflor",label:"1 tz coliflor",amount:"200 g"},
+      {id:"al_esparragos",label:"5 espárragos",amount:"5 unidades"},
+      {id:"al_porotosv",label:"¾ tz porotos verdes",amount:"150 g"},
+      {id:"al_zanahoria",label:"1 tz zanahoria cocida",amount:"200 g"},
+      {id:"al_zapallo",label:"1 tz zapallo italiano cocido",amount:"200 g"},
+      {id:"al_camote",label:"½ tz zapallo camote",amount:"100 g"}
+    ]},
+    {id:"proteina",label:"Proteína",single:true,required:true,excludesGroups:["proteina_mixta","carbo_mixta","extra_mixta"],options:[
+      {id:"al_pollo",label:"150g pollo",amount:"150 g"},
+      {id:"al_carne",label:"150g carne magra",amount:"150 g"},
+      {id:"al_atun",label:"1½ lata atún",amount:"1½ lata"},
+      {id:"al_jurel",label:"3 trozos jurel 150g",amount:"150 g"},
+      {id:"al_pavo",label:"150g pavo",amount:"150 g"},
+      {id:"al_pescado",label:"150g salmón/pescado",amount:"150 g"}
+    ]},
+    {id:"carbo",label:"Carbohidrato",single:true,required:true,excludesGroups:["proteina_mixta","carbo_mixta","extra_mixta"],options:[
+      {id:"al_arroz",label:"1 tz arroz cocido",amount:"150 g"},
+      {id:"al_fideos",label:"1 tz fideos cocidos",amount:"150 g"},
+      {id:"al_papas",label:"270g papas cocidas",amount:"270 g"},
+      {id:"al_quinoa",label:"1 tz quínoa",amount:"150 g"},
+      {id:"al_cuscus",label:"1 tz cus-cus",amount:"150 g"},
+      {id:"al_fajitas",label:"3 fajitas (M)",amount:"3 unidades medianas"},
+      {id:"al_pure",label:"210g puré de papas",amount:"210 g"},
+      {id:"al_papashorno",label:"210g papas horneadas",amount:"210 g"}
+    ]},
+    {id:"proteina_mixta",label:"Preparación mixta — legumbre",single:true,required:false,excludesGroups:["proteina","carbo"],options:[
+      {id:"alm_porotos",label:"1 tz porotos cocidos",amount:"150 g"},
+      {id:"alm_lentejas",label:"1 tz lentejas cocidas",amount:"210 g"},
+      {id:"alm_garbanzos",label:"1 tz garbanzos cocidos",amount:"150 g"},
+      {id:"alm_arvejas",label:"1 tz arvejas cocidas",amount:"200 g"}
+    ]},
+    {id:"carbo_mixta",label:"Preparación mixta — cereal",single:true,required:false,excludesGroups:["proteina","carbo"],options:[
+      {id:"alm_arrozmedio",label:"½ tz arroz cocido",amount:"70 g"},
+      {id:"alm_fideosmedio",label:"½ tz fideos cocidos",amount:"70 g"}
+    ]},
+    {id:"extra_mixta",label:"Preparación mixta — proteína extra",single:true,required:false,excludesGroups:["proteina","carbo"],options:[
+      {id:"alm_pollo50",label:"50g pollo",amount:"50 g"},
+      {id:"alm_carne50",label:"50g carne magra",amount:"50 g"},
+      {id:"alm_huevo1",label:"1 huevo cocido",amount:"1 unidad"}
+    ]}
   ]},
   colacion2: { label:"Colación", time:"17:00", emoji:"🥛", categories:[
-    {id:"lacteo",label:"Lácteo",single:true,options:["Yogurt descremado","Leche descremada 200cc"]},
-    {id:"opciones",label:"Elige 2",single:false,max:2,options:["20g avena","1 manzana","1 pera","1 naranja","½ plátano","2 kiwis","1 tz frutillas","1 tz arándanos","1 durazno","2 mandarinas","15 cerezas","¾ tz piña","1 tz sandía","1 tz melón","1 tz frambuesas","½ tz mora","1 pepino","20g cereal"]}
+    {id:"lacteo",label:"Lácteo",single:true,required:true,options:[
+      {id:"c2_yogurt",label:"Yogurt descremado",amount:"1 unidad"},
+      {id:"c2_leche",label:"Leche descremada 200cc",amount:"200 cc"}
+    ]},
+    {id:"opciones",label:"Elige 2",single:false,max:2,required:true,options:[
+      {id:"c2_avena",label:"20g avena",amount:"20 g (3 cdas)"},
+      {id:"c2_manzana",label:"1 manzana",amount:"1 unidad"},
+      {id:"c2_pera",label:"1 pera",amount:"1 unidad"},
+      {id:"c2_naranja",label:"1 naranja",amount:"1 unidad"},
+      {id:"c2_platano",label:"½ plátano",amount:"½ unidad"},
+      {id:"c2_kiwi",label:"2 kiwis",amount:"2 unidades"},
+      {id:"c2_frutillas",label:"1 tz frutillas",amount:"200 cc"},
+      {id:"c2_arandanos",label:"1 tz arándanos",amount:"200 cc"},
+      {id:"c2_durazno",label:"1 durazno",amount:"1 unidad"},
+      {id:"c2_mandarina",label:"2 mandarinas",amount:"2 unidades"},
+      {id:"c2_cerezas",label:"15 cerezas",amount:"15 unidades"},
+      {id:"c2_pina",label:"¾ tz piña",amount:"130 g"},
+      {id:"c2_sandia",label:"1 tz sandía",amount:"200 g"},
+      {id:"c2_melon",label:"1 tz melón",amount:"180 g"},
+      {id:"c2_frambuesas",label:"1 tz frambuesas",amount:"200 cc"},
+      {id:"c2_mora",label:"½ tz mora",amount:"100 cc"},
+      {id:"c2_pepino",label:"1 pepino",amount:"1 unidad"},
+      {id:"c2_cereal",label:"20g cereal",amount:"20 g (3 cdas)"}
+    ]}
   ]},
   cena: { label:"Cena", time:"20:00", emoji:"🌙", categories:[
-    {id:"libre",label:"Ensalada libre (elige 2)",single:false,max:2,options:["Achicoria","Apio","Espinaca cruda","Lechuga","Pepino","Pimiento morrón","Repollo","Zapallo italiano","Acelga cruda"]},
-    {id:"general",label:"Ensalada general (elige 1)",single:true,options:["1 tomate","½ tz zanahoria cruda","¾ tz cebolla","1½ tz champiñones","½ tz palmitos","½ tz acelga cocida","1 alcachofa chica","½ tz betarraga","1 tz brócoli","1 tz coliflor","5 espárragos","¾ tz porotos verdes","1 tz zanahoria cocida","1 tz zapallo italiano cocido"]},
-    {id:"proteina",label:"Proteína",single:true,options:["100g pollo","3 huevos cocidos","100g carne magra","1 lata atún","2 trozos jurel 100g","100g pavo","100g salmón/pescado"]},
-    {id:"carbo",label:"Carbohidrato",single:true,options:["¾ tz arroz cocido","¾ tz fideos cocidos","180g papas cocidas","¾ tz quínoa","¾ tz cus-cus","2 fajitas (M)","140g puré de papas","140g papas horneadas"]}
+    {id:"libre",label:"Ensalada libre (elige 2)",single:false,max:2,required:true,options:[
+      {id:"ce_achicoria",label:"Achicoria",amount:"1 taza"},
+      {id:"ce_apio",label:"Apio",amount:"1 taza"},
+      {id:"ce_espinaca_c",label:"Espinaca cruda",amount:"1 taza"},
+      {id:"ce_lechuga",label:"Lechuga",amount:"1 taza"},
+      {id:"ce_pepino",label:"Pepino",amount:"1 taza"},
+      {id:"ce_pimiento",label:"Pimiento morrón",amount:"1 taza"},
+      {id:"ce_repollo",label:"Repollo",amount:"1 taza"},
+      {id:"ce_zapallo_c",label:"Zapallo italiano",amount:"1 taza cruda"},
+      {id:"ce_acelga_c",label:"Acelga cruda",amount:"1 taza"}
+    ]},
+    {id:"general",label:"Ensalada general (elige 1)",single:true,required:true,options:[
+      {id:"ce_tomate",label:"1 tomate",amount:"1 unidad"},
+      {id:"ce_zanahoria_c",label:"½ tz zanahoria cruda",amount:"100 g"},
+      {id:"ce_cebolla",label:"¾ tz cebolla",amount:"150 g"},
+      {id:"ce_champinones",label:"1½ tz champiñones",amount:"300 g"},
+      {id:"ce_palmitos",label:"½ tz palmitos",amount:"100 g"},
+      {id:"ce_acelga",label:"½ tz acelga cocida",amount:"100 g"},
+      {id:"ce_alcachofa",label:"1 alcachofa chica",amount:"1 unidad chica"},
+      {id:"ce_betarraga",label:"½ tz betarraga",amount:"100 g"},
+      {id:"ce_brocoli",label:"1 tz brócoli",amount:"200 g"},
+      {id:"ce_coliflor",label:"1 tz coliflor",amount:"200 g"},
+      {id:"ce_esparragos",label:"5 espárragos",amount:"5 unidades"},
+      {id:"ce_porotosv",label:"¾ tz porotos verdes",amount:"150 g"},
+      {id:"ce_zanahoria",label:"1 tz zanahoria cocida",amount:"200 g"},
+      {id:"ce_zapallo",label:"1 tz zapallo italiano cocido",amount:"200 g"}
+    ]},
+    {id:"proteina",label:"Proteína",single:true,required:true,options:[
+      {id:"ce_pollo",label:"100g pollo",amount:"100 g"},
+      {id:"ce_huevos3",label:"3 huevos cocidos",amount:"3 unidades"},
+      {id:"ce_carne",label:"100g carne magra",amount:"100 g"},
+      {id:"ce_atun",label:"1 lata atún",amount:"1 lata"},
+      {id:"ce_jurel",label:"2 trozos jurel 100g",amount:"100 g"},
+      {id:"ce_pavo",label:"100g pavo",amount:"100 g"},
+      {id:"ce_pescado",label:"100g salmón/pescado",amount:"100 g"}
+    ]},
+    {id:"carbo",label:"Carbohidrato",single:true,required:true,options:[
+      {id:"ce_arroz",label:"¾ tz arroz cocido",amount:"110 g"},
+      {id:"ce_fideos",label:"¾ tz fideos cocidos",amount:"110 g"},
+      {id:"ce_papas",label:"180g papas cocidas",amount:"180 g"},
+      {id:"ce_quinoa",label:"¾ tz quínoa",amount:"110 g"},
+      {id:"ce_cuscus",label:"¾ tz cus-cus",amount:"110 g"},
+      {id:"ce_fajitas",label:"2 fajitas (M)",amount:"2 unidades medianas"},
+      {id:"ce_pure",label:"140g puré de papas",amount:"140 g"},
+      {id:"ce_papashorno",label:"140g papas horneadas",amount:"140 g"}
+    ]}
   ]},
   colacion3: { label:"Colación", time:"22:00", emoji:"🌛", categories:[
-    {id:"lacteo",label:"Lácteo",single:true,options:["Yogurt descremado","Leche descremada 200cc"]},
-    {id:"opcion",label:"Elige 1",single:true,options:["20g avena","1 manzana","1 pera","1 naranja","½ plátano","2 kiwis","1 tz frutillas","1 tz arándanos","1 durazno","2 mandarinas","15 cerezas","¾ tz piña","1 tz sandía","1 tz melón","1 tz frambuesas","½ tz mora","1 pepino","20g cereal"]}
+    {id:"lacteo",label:"Lácteo",single:true,required:true,options:[
+      {id:"c3_yogurt",label:"Yogurt descremado",amount:"1 unidad"},
+      {id:"c3_leche",label:"Leche descremada 200cc",amount:"200 cc"}
+    ]},
+    {id:"opcion",label:"Elige 1",single:true,required:true,options:[
+      {id:"c3_avena",label:"20g avena",amount:"20 g (3 cdas)"},
+      {id:"c3_manzana",label:"1 manzana",amount:"1 unidad"},
+      {id:"c3_pera",label:"1 pera",amount:"1 unidad"},
+      {id:"c3_naranja",label:"1 naranja",amount:"1 unidad"},
+      {id:"c3_platano",label:"½ plátano",amount:"½ unidad"},
+      {id:"c3_kiwi",label:"2 kiwis",amount:"2 unidades"},
+      {id:"c3_frutillas",label:"1 tz frutillas",amount:"200 cc"},
+      {id:"c3_arandanos",label:"1 tz arándanos",amount:"200 cc"},
+      {id:"c3_durazno",label:"1 durazno",amount:"1 unidad"},
+      {id:"c3_mandarina",label:"2 mandarinas",amount:"2 unidades"},
+      {id:"c3_cerezas",label:"15 cerezas",amount:"15 unidades"},
+      {id:"c3_pina",label:"¾ tz piña",amount:"130 g"},
+      {id:"c3_sandia",label:"1 tz sandía",amount:"200 g"},
+      {id:"c3_melon",label:"1 tz melón",amount:"180 g"},
+      {id:"c3_frambuesas",label:"1 tz frambuesas",amount:"200 cc"},
+      {id:"c3_mora",label:"½ tz mora",amount:"100 cc"},
+      {id:"c3_pepino",label:"1 pepino",amount:"1 unidad"},
+      {id:"c3_cereal",label:"20g cereal",amount:"20 g (3 cdas)"}
+    ]}
   ]},
   postEntreno: { label:"Post Entreno", time:"Tras entrenamiento", emoji:"💪", categories:[
-    {id:"proteina",label:"Proteína + recuperación",single:false,options:["1 scoop proteína","200cc leche descremada","Yogurt descremado"]}
+    {id:"proteina",label:"Proteína + recuperación",single:false,required:false,options:[
+      {id:"pe_scoop",label:"1 scoop proteína",amount:"1 scoop"},
+      {id:"pe_leche",label:"200cc leche descremada",amount:"200 cc"},
+      {id:"pe_creatina",label:"5g creatina",amount:"5 g"}
+    ]}
+  ]},
+  postEntreno2: { label:"Post Entreno (2ª jornada)", time:"Tras segunda sesión", emoji:"🥤", categories:[
+    {id:"recuperacion",label:"Recuperación adicional",single:false,required:false,options:[
+      {id:"pe2_leche",label:"200cc leche descremada",amount:"200 cc"},
+      {id:"pe2_platano",label:"1 plátano",amount:"1 unidad"}
+    ]}
   ]}
 };
 
@@ -65,7 +261,7 @@ const DEFAULT_GYM_TEMPLATE: GymTemplate = {
   main: { label:"Mi rutina", exercises:[{id:"m1",name:"Ejercicio 1"},{id:"m2",name:"Ejercicio 2"},{id:"m3",name:"Ejercicio 3"},{id:"m4",name:"Ejercicio 4"},{id:"m5",name:"Ejercicio 5"}] },
 };
 
-const MEAL_ORDER = ["desayuno","colacion1","almuerzo","colacion2","cena","colacion3","postEntreno"];
+const MEAL_ORDER = ["desayuno","colacion1","almuerzo","colacion2","cena","colacion3","postEntreno","postEntreno2"];
 const NOTIF_SCHEDULE = [
   {id:"desayuno",hour:9,label:"Desayuno",emoji:"☀️"},{id:"colacion1",hour:11,label:"Colación",emoji:"🍎"},
   {id:"almuerzo",hour:13,label:"Almuerzo",emoji:"🍽️"},{id:"colacion2",hour:17,label:"Colación de tarde",emoji:"🥛"},
@@ -97,6 +293,8 @@ const sameDay = (a:Date,b:Date) => fmtDate(a)===fmtDate(b);
 const cap = (s:string) => s.charAt(0).toUpperCase()+s.slice(1);
 const getWeekStart = (base:Date,offset:number) => { const d=new Date(base); d.setHours(0,0,0,0); const dow=d.getDay(); d.setDate(d.getDate()+(dow===0?-6:1-dow)+offset*7); return d; };
 const avg = (arr:number[]) => arr.length?+(arr.reduce((a,b)=>a+b,0)/arr.length).toFixed(1):0;
+const labelOf = (plan:Plan,mealId:string,catId:string,idOrLabel:string):string => { const cat=plan[mealId]?.categories.find(c=>c.id===catId); const opt=cat?.options.find(o=>o.id===idOrLabel); return opt?.label||idOrLabel; };
+const labelsOf = (plan:Plan,mealId:string,catId:string,items:string[]):string[] => items.map(i=>labelOf(plan,mealId,catId,i));
 const normalizeName = (s:string):string => s.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().trim().replace(/\s+/g," ");
 const levenshtein = (a:string,b:string):number => { if(a===b) return 0; if(!a.length) return b.length; if(!b.length) return a.length; let prev=Array.from({length:b.length+1},(_,i)=>i); for(let i=0;i<a.length;i++){ const curr=[i+1]; for(let j=0;j<b.length;j++){ curr.push(Math.min(prev[j+1]+1,curr[j]+1,prev[j]+(a[i]===b[j]?0:1))); } prev=curr; } return prev[b.length]; };
 const mergeExerciseDuplicates = (sessions:GymSessions):{sessions:GymSessions,changed:boolean,canonical:Record<string,string>,merges:{from:string;to:string}[]} => {
@@ -218,7 +416,7 @@ const exportWeekPDF = (weekData:any, weekStart:Date, plan:Plan) => {
   const wsL=weekStart.toLocaleDateString("es-CL",{day:"numeric",month:"long",year:"numeric"});
   const weL=new Date(weekStart.getTime()+6*86400000).toLocaleDateString("es-CL",{day:"numeric",month:"long",year:"numeric"});
   let rows="";
-  Object.keys(weekData).forEach((dateStr,i)=>{ const mData=weekData[dateStr]; const done=mData?MEAL_ORDER.filter(id=>plan[id]?.categories.every(c=>(mData[id]?.[c.id]||[]).length>0)).length:0; const pct=Math.round((done/MEAL_ORDER.length)*100); const d=new Date(dateStr+"T00:00:00"); let meals=""; if(mData) MEAL_ORDER.forEach(id=>{ const meal=plan[id]; if(!meal) return; const items=meal.categories.flatMap(c=>(mData[id]?.[c.id]||[])); if(items.length>0) meals+=`<div style="font-size:12px;margin:3px 0"><b style="color:#1e56a0">${meal.emoji} ${meal.label}:</b> ${items.join(", ")}</div>`; }); rows+=`<div style="border:1px solid #cce0f5;border-radius:10px;padding:14px;margin-bottom:12px;page-break-inside:avoid"><div style="display:flex;justify-content:space-between;margin-bottom:8px"><b style="color:#0f2044;font-size:14px">${DAY_FULL[i]} ${d.getDate()}/${d.getMonth()+1}</b><span style="font-size:12px;color:#666">${done}/${MEAL_ORDER.length} comidas (${pct}%) · 💧${(mData?.water||0)*300}cc</span></div>${meals||'<i style="color:#bbb;font-size:12px">Sin registro</i>'}</div>`; });
+  Object.keys(weekData).forEach((dateStr,i)=>{ const mData=weekData[dateStr]; const done=mData?MEAL_ORDER.filter(id=>plan[id]?.categories.filter(c=>c.required!==false).every(c=>(mData[id]?.[c.id]||[]).length>0)).length:0; const pct=Math.round((done/MEAL_ORDER.length)*100); const d=new Date(dateStr+"T00:00:00"); let meals=""; if(mData) MEAL_ORDER.forEach(id=>{ const meal=plan[id]; if(!meal) return; const items=meal.categories.flatMap(c=>labelsOf(plan,id,c.id,mData[id]?.[c.id]||[])); if(items.length>0) meals+=`<div style="font-size:12px;margin:3px 0"><b style="color:#1e56a0">${meal.emoji} ${meal.label}:</b> ${items.join(", ")}</div>`; }); rows+=`<div style="border:1px solid #cce0f5;border-radius:10px;padding:14px;margin-bottom:12px;page-break-inside:avoid"><div style="display:flex;justify-content:space-between;margin-bottom:8px"><b style="color:#0f2044;font-size:14px">${DAY_FULL[i]} ${d.getDate()}/${d.getMonth()+1}</b><span style="font-size:12px;color:#666">${done}/${MEAL_ORDER.length} comidas (${pct}%) · 💧${(mData?.water||0)*300}cc</span></div>${meals||'<i style="color:#bbb;font-size:12px">Sin registro</i>'}</div>`; });
   const html=`<!DOCTYPE html><html><head><title>Resumen Semanal</title><style>body{font-family:system-ui,sans-serif;padding:28px;max-width:720px;margin:0 auto;color:#0d1b2e}@media print{button{display:none}}</style></head><body><h2 style="color:#0f2044;margin-bottom:6px">Plan de Alimentación — Resumen Semanal</h2><p style="color:#666;margin-bottom:20px">${wsL} – ${weL}</p>${rows}<button onclick="window.print()" style="margin-top:18px;padding:11px 28px;background:#1e56a0;color:#fff;border:none;border-radius:9px;cursor:pointer;font-size:14px">🖨️ Imprimir / Guardar PDF</button></body></html>`;
   const w=window.open("","_blank"); if(w){ w.document.write(html); w.document.close(); }
 };
@@ -385,7 +583,7 @@ export default function App() {
   },[selected,uid]);
 
   // ── Streak ──
-  const computeStreak=useCallback((plan:Plan)=>{ let s=0; const d=new Date(today); while(true){ const data=lsGet(dayKey(d)); if(!data) break; const ok=MEAL_ORDER.every(id=>plan[id]?.categories.every(c=>(data[id]?.[c.id]||[]).length>0)); if(!ok) break; s++; d.setDate(d.getDate()-1); } return s; },[]);
+  const computeStreak=useCallback((plan:Plan)=>{ let s=0; const d=new Date(today); while(true){ const data=lsGet(dayKey(d)); if(!data) break; const ok=MEAL_ORDER.every(id=>plan[id]?.categories.filter(c=>c.required!==false).every(c=>(data[id]?.[c.id]||[]).length>0)); if(!ok) break; s++; d.setDate(d.getDate()-1); } return s; },[]);
   useEffect(()=>{ setStreak(computeStreak(mealPlan)); },[dayData,mealPlan]);
 
   // ── Timer ──
@@ -452,17 +650,16 @@ export default function App() {
   const removeSet=(exIdx:number,setIdx:number)=>{ if(!gymSession||gymSession.exercises[exIdx].sets.length<=1) return; const ex=gymSession.exercises.map((e,i)=>i!==exIdx?e:{...e,sets:e.sets.filter((_,j)=>j!==setIdx)}); setGymSession({...gymSession,exercises:ex}); };
   const addExercise=()=>{ if(!gymSession) return; const id=`ex${Date.now()}`; const newEx={id,name:"Nuevo ejercicio",sets:[{weight:0,reps:0}],notes:""}; setGymSession({...gymSession,exercises:[...gymSession.exercises,newEx]}); };
   const removeExercise=(exIdx:number)=>{ if(!gymSession||gymSession.exercises.length<=1) return; setGymSession({...gymSession,exercises:gymSession.exercises.filter((_,i)=>i!==exIdx)}); };
-  const updateTemplateName=(label:string)=>{ const tmpl={...gymTemplate,main:{...(gymTemplate.main||DEFAULT_GYM_TEMPLATE.main),label}}; saveGymTemplate(tmpl); };
 
   // ── PDF upload — Plan alimentación (Gemini) ──
-  const handlePDFUpload=async(e:React.ChangeEvent<HTMLInputElement>)=>{ const file=e.target.files?.[0]; if(!file||!apiKey){setPdfError("Ingresa tu API Key primero."); return;} setPdfLoading(true); setPdfError(""); setPdfPreview(null); if(fileRef.current) fileRef.current.value=""; try { const toB64=(f:File):Promise<string>=>new Promise((res,rej)=>{ const r=new FileReader(); r.onload=ev=>res((ev.target?.result as string).split(",")[1]); r.onerror=rej; r.readAsDataURL(f); }); const base64=await toB64(file); const resp=await geminiWithPDF(apiKey,base64,`Analiza este plan de alimentación. Devuelve ÚNICAMENTE JSON válido sin texto ni backticks con claves: desayuno, colacion1, almuerzo, colacion2, cena, colacion3, postEntreno. Cada comida: {label, time, emoji, categories:[{id, label, single, max?, options:[]}]}. Extrae las opciones reales del PDF.`); const data=await resp.json(); const text=geminiText(data); try { const parsed=JSON.parse(text.replace(/```json|```/g,"").trim()); if(!parsed.desayuno||!parsed.almuerzo) throw new Error(); setPdfPreview(parsed); } catch { setPdfError("No se pudo interpretar el plan."); } } catch(err:any){ setPdfError(`Error: ${err.message||"Verifica tu API Key."}`); } setPdfLoading(false); };
+  const handlePDFUpload=async(e:React.ChangeEvent<HTMLInputElement>)=>{ const file=e.target.files?.[0]; if(!file||!apiKey){setPdfError("Ingresa tu API Key primero."); return;} setPdfLoading(true); setPdfError(""); setPdfPreview(null); if(fileRef.current) fileRef.current.value=""; try { const toB64=(f:File):Promise<string>=>new Promise((res,rej)=>{ const r=new FileReader(); r.onload=ev=>res((ev.target?.result as string).split(",")[1]); r.onerror=rej; r.readAsDataURL(f); }); const base64=await toB64(file); const resp=await geminiWithPDF(apiKey,base64,`Analiza este plan de alimentación. Devuelve ÚNICAMENTE JSON válido sin texto ni backticks con claves: desayuno, colacion1, almuerzo, colacion2, cena, colacion3, postEntreno, postEntreno2. Cada comida tiene esta estructura exacta: {label, time, emoji, categories:[{id, label, single, max?, required?, excludesGroups?, options:[{id, label, amount, excludesGroups?}]}]}. Reglas:\n- 'id' de cada categoría y opción debe ser único, en snake_case, con prefijo de la comida (ej: 'des_yogurt' para desayuno yogurt)\n- 'amount' debe ser la cantidad en lenguaje natural con unidad explícita (gramos, cc, ml, unidad, taza, cdta, cda). Ejemplo: '200 cc', '3 rebanadas', '1 unidad', '10 g'\n- 'single:true' cuando se elige UNA opción del grupo, 'single:false, max:N' cuando se eligen hasta N\n- 'required:false' para categorías opcionales (post entreno 2ª jornada)\n- 'excludesGroups' es un array de IDs de categorías que se desactivan al elegir esta opción/categoría (ej: '3 huevos' excluye al grupo 'grasa')\nExtrae fielmente las opciones y cantidades del PDF.`); const data=await resp.json(); const text=geminiText(data); try { const parsed=JSON.parse(text.replace(/```json|```/g,"").trim()); if(!parsed.desayuno||!parsed.almuerzo) throw new Error(); setPdfPreview(parsed); } catch { setPdfError("No se pudo interpretar el plan."); } } catch(err:any){ setPdfError(`Error: ${err.message||"Verifica tu API Key."}`); } setPdfLoading(false); };
   const applyNewPlan=async()=>{ if(!pdfPreview) return; setMealPlan(pdfPreview); await syncPlan(pdfPreview); setPdfPreview(null); alert("✅ Plan actualizado!"); };
 
   // ── Eval PDF (Gemini) ──
   const handleEvalPDFUpload=async(e:React.ChangeEvent<HTMLInputElement>)=>{ const file=e.target.files?.[0]; if(!file||!apiKey){setEvalPdfError("Configura tu API Key primero."); return;} setEvalPdfLoading(true); setEvalPdfError(""); if(evalFileRef.current) evalFileRef.current.value=""; try { const toB64=(f:File):Promise<string>=>new Promise((res,rej)=>{ const r=new FileReader(); r.onload=ev=>res((ev.target?.result as string).split(",")[1]); r.onerror=rej; r.readAsDataURL(f); }); const base64=await toB64(file); const resp=await geminiWithPDF(apiKey,base64,`Analiza este informe de evaluación antropométrica y extrae los datos. Devuelve ÚNICAMENTE JSON válido sin texto ni backticks con esta estructura exacta:\n{"date":"DD/MM/AA","weight":0,"fatPct":0,"muscleKg":0,"musOseo":0,"endo":0,"meso":0,"ecto":0,"sdd":0,"brazo":0,"muslo":0,"pant":0}\nExtrae los valores numéricos exactos del informe. Si algún valor no aparece, usa 0.`); const data=await resp.json(); const text=geminiText(data); try { const parsed=JSON.parse(text.replace(/```json|```/g,"").trim()); if(!parsed.date||!parsed.fatPct) throw new Error(); setNewEval({date:parsed.date,weight:parsed.weight||"",fatPct:parsed.fatPct||"",muscleKg:parsed.muscleKg||"",musOseo:parsed.musOseo||"",endo:parsed.endo||"",meso:parsed.meso||"",ecto:parsed.ecto||"",sdd:parsed.sdd||"",brazo:parsed.brazo||"",muslo:parsed.muslo||"",pant:parsed.pant||""}); setEvalPdfError(""); } catch { setEvalPdfError("No se pudo extraer los datos. Verifica que sea un informe antropométrico."); } } catch(err:any){ setEvalPdfError(`Error: ${err.message||"Verifica tu API Key y conexión."}`); } setEvalPdfLoading(false); };
 
   // ── AI Analysis (Gemini) ──
-  const runAiAnalysis=async()=>{ if(!apiKey){alert("Configura tu API Key primero.");return;} setAiLoading(true); setAiAnalysis(""); const ws=getWeekStart(today,weekOffset); const wDays:any[]=[]; for(let i=0;i<7;i++){ const d=new Date(ws.getTime()+i*86400000); const dayD=weekData[fmtDate(d)]; if(dayD){ const wl=dayD.wellness||{}; const exArr=Array.isArray(wl.exercise)?wl.exercise:(wl.exercise?[wl.exercise]:[]); const gym=gymSessions[fmtDate(d)]; const alcRaw=wl.alcohol; const alcObj=typeof alcRaw==="object"&&alcRaw!==null?alcRaw:(typeof alcRaw==="number"&&alcRaw>0?{otro:alcRaw}:{}); const alcTotal=(alcObj.vino||0)+(alcObj.cerveza||0)+(alcObj.destilado||0)+(alcObj.otro||0); wDays.push({fecha:fmtDate(d),adherencia:`${Math.round(MEAL_ORDER.filter(id=>mealPlan[id]?.categories.every(c=>(dayD[id]?.[c.id]||[]).length>0)).length/MEAL_ORDER.length*100)}%`,agua:`${(dayD.water||0)*300}cc`,ejercicio:exArr.join(", ")||"no registrado",gym:gym?`${gymTemplate.main?.label||"Gym"} — ${gym.exercises.map(e=>`${e.name}: ${e.sets.map(s=>`${s.weight}kg×${s.reps}`).join(", ")}`).join(" | ")}`:null,sueño:`${wl.sleep||0}h`,energia:`${wl.energy||0}/5`,animo:`${wl.mood||0}/5`,dolor:`${["Sin dolor","Leve","Moderado","Fuerte","Muy fuerte"][wl.musclePain||0]}`,cafes:wl.coffees||0,cafeina:wl.caffeinePills||0,alcohol:alcTotal>0?`${alcTotal} total (vino:${alcObj.vino||0} copa150ml, cerveza:${alcObj.cerveza||0} vaso330ml, destilado:${alcObj.destilado||0} trago45ml, otro:${alcObj.otro||0})`:"0",cigarrillos:wl.cigarettes||0}); } } try { const prompt=`Eres un coach de bienestar, nutrición y entrenamiento. Analiza los datos de esta semana y dame un análisis breve (máximo 6 puntos) con observaciones concretas y 2-3 recomendaciones prácticas. Sé directo y motivador.\n\nDatos:\n${JSON.stringify(wDays,null,2)}\n\nMétricas actuales: Grasa ${evals[evals.length-1]?.fatPct}% (meta 10.5%), Músculo ${evals[evals.length-1]?.muscleKg}kg (meta 49kg).`; const aiResp=await geminiTextOnly(apiKey,prompt); const aiJson=await aiResp.json(); if(aiJson.error){ setAiAnalysis(`⚠️ Error Gemini: ${aiJson.error.message||"API Key inválida o sin cuota."}`); } else { const txt=geminiText(aiJson); setAiAnalysis(txt||"La IA no devolvió texto. Revisa tu API Key en Config."); } } catch(err:any){ setAiAnalysis(`Error al conectar con Gemini: ${err.message||"Sin conexión."}`); } setAiLoading(false); };
+  const runAiAnalysis=async()=>{ if(!apiKey){alert("Configura tu API Key primero.");return;} setAiLoading(true); setAiAnalysis(""); const ws=getWeekStart(today,weekOffset); const wDays:any[]=[]; for(let i=0;i<7;i++){ const d=new Date(ws.getTime()+i*86400000); const dayD=weekData[fmtDate(d)]; if(dayD){ const wl=dayD.wellness||{}; const exArr=Array.isArray(wl.exercise)?wl.exercise:(wl.exercise?[wl.exercise]:[]); const gym=gymSessions[fmtDate(d)]; const alcRaw=wl.alcohol; const alcObj=typeof alcRaw==="object"&&alcRaw!==null?alcRaw:(typeof alcRaw==="number"&&alcRaw>0?{otro:alcRaw}:{}); const alcTotal=(alcObj.vino||0)+(alcObj.cerveza||0)+(alcObj.destilado||0)+(alcObj.otro||0); wDays.push({fecha:fmtDate(d),adherencia:`${Math.round(MEAL_ORDER.filter(id=>mealPlan[id]?.categories.filter(c=>c.required!==false).every(c=>(dayD[id]?.[c.id]||[]).length>0)).length/MEAL_ORDER.length*100)}%`,agua:`${(dayD.water||0)*300}cc`,ejercicio:exArr.join(", ")||"no registrado",gym:gym?`Gym — ${gym.exercises.map(e=>`${e.name}: ${e.sets.map(s=>`${s.weight}kg×${s.reps}`).join(", ")}`).join(" | ")}`:null,sueño:`${wl.sleep||0}h`,energia:`${wl.energy||0}/5`,animo:`${wl.mood||0}/5`,dolor:`${["Sin dolor","Leve","Moderado","Fuerte","Muy fuerte"][wl.musclePain||0]}`,cafes:wl.coffees||0,cafeina:wl.caffeinePills||0,alcohol:alcTotal>0?`${alcTotal} total (vino:${alcObj.vino||0} copa150ml, cerveza:${alcObj.cerveza||0} vaso330ml, destilado:${alcObj.destilado||0} trago45ml, otro:${alcObj.otro||0})`:"0",cigarrillos:wl.cigarettes||0}); } } try { const prompt=`Eres un coach de bienestar, nutrición y entrenamiento. Analiza los datos de esta semana y dame un análisis breve (máximo 6 puntos) con observaciones concretas y 2-3 recomendaciones prácticas. Sé directo y motivador.\n\nDatos:\n${JSON.stringify(wDays,null,2)}\n\nMétricas actuales: Grasa ${evals[evals.length-1]?.fatPct}% (meta 10.5%), Músculo ${evals[evals.length-1]?.muscleKg}kg (meta 49kg).`; const aiResp=await geminiTextOnly(apiKey,prompt); const aiJson=await aiResp.json(); if(aiJson.error){ setAiAnalysis(`⚠️ Error Gemini: ${aiJson.error.message||"API Key inválida o sin cuota."}`); } else { const txt=geminiText(aiJson); setAiAnalysis(txt||"La IA no devolvió texto. Revisa tu API Key en Config."); } } catch(err:any){ setAiAnalysis(`Error al conectar con Gemini: ${err.message||"Sin conexión."}`); } setAiLoading(false); };
 
   // ── Supabase file upload ──
   const handleSupabaseUpload=async(e:React.ChangeEvent<HTMLInputElement>,tipo:"control"|"pauta")=>{ const file=e.target.files?.[0]; if(!file||!uid) return; const setUploading=tipo==="control"?setUploadingControl:setUploadingPauta; try { setUploading(true); const fileExt=file.name.split(".").pop(); const fileName=`${uid}/${Date.now()}_${tipo}.${fileExt}`; const { error:uploadError }=await supabase.storage.from("nutricion-docs").upload(fileName,file); if(uploadError) throw uploadError; const { data }=supabase.storage.from("nutricion-docs").getPublicUrl(fileName); if(tipo==="control") setControlUrl(data.publicUrl); else setPautaUrl(data.publicUrl); alert("¡Archivo subido con éxito!"); } catch(err:any){ alert("Error al subir: "+(err.message||"Verifica las políticas de Supabase")); } finally { setUploading(false); } };
@@ -470,7 +667,7 @@ export default function App() {
   const addEval=async()=>{ const ev={id:Date.now(),date:newEval.date,weight:+newEval.weight||0,fatPct:+newEval.fatPct||0,muscleKg:+newEval.muscleKg||0,musOseo:+newEval.musOseo||0,endo:+newEval.endo||0,meso:+newEval.meso||0,ecto:+newEval.ecto||0,sdd:+newEval.sdd||0,brazo:+newEval.brazo||0,muslo:+newEval.muslo||0,pant:+newEval.pant||0}; const ne=[...evals,ev]; setEvals(ne); await syncEvals(ne); setShowAddEval(false); setNewEval({date:"",weight:"",fatPct:"",muscleKg:"",musOseo:"",endo:"",meso:"",ecto:"",sdd:"",brazo:"",muslo:"",pant:""}); };
 
   // ── Computed ──
-  const mealDone=(id:string)=>mealPlan[id]?.categories.every(c=>(dayData[id]?.[c.id]||[]).length>0)??false;
+  const mealDone=(id:string)=>mealPlan[id]?.categories.filter(c=>c.required!==false).every(c=>(dayData[id]?.[c.id]||[]).length>0)??false;
   const doneCount=MEAL_ORDER.filter(mealDone).length;
   const pct=Math.round((doneCount/MEAL_ORDER.length)*100);
   const water=dayData.water||0;
@@ -478,7 +675,7 @@ export default function App() {
   const yr=calMonth.getFullYear(),mo=calMonth.getMonth();
   const firstDay=new Date(yr,mo,1).getDay(),daysInMo=new Date(yr,mo+1,0).getDate();
   const cells:(Date|null)[]=[]; for(let i=0;i<firstDay;i++) cells.push(null); for(let d=1;d<=daysInMo;d++) cells.push(new Date(yr,mo,d));
-  const weekMealDone=(mData:any,id:string)=>mData&&mealPlan[id]?.categories.every(c=>(mData[id]?.[c.id]||[]).length>0);
+  const weekMealDone=(mData:any,id:string)=>mData&&mealPlan[id]?.categories.filter(c=>c.required!==false).every(c=>(mData[id]?.[c.id]||[]).length>0);
   const weekPct=(mData:any)=>{ if(!mData) return 0; return Math.round(MEAL_ORDER.filter(id=>weekMealDone(mData,id)).length/MEAL_ORDER.length*100); };
   const latest=evals[evals.length-1];
   const isCustomPlan=JSON.stringify(mealPlan)!==JSON.stringify(DEFAULT_PLAN);
@@ -558,9 +755,9 @@ export default function App() {
                   <div style={{flex:1}}><div style={{fontWeight:700,fontSize:16,color:G.text}}>{meal.label}</div><div style={{fontSize:13,color:G.muted,marginTop:1}}>{meal.time}</div></div>
                   {done?<span style={{background:"#eafaf2",color:G.green,borderRadius:99,padding:"5px 13px",fontSize:13,fontWeight:800}}>✓ Listo</span>:<span style={{color:"#ccc",fontSize:14}}>{isExp?"▲":"▼"}</span>}
                 </div>
-                {done&&!isExp&&<div style={{padding:"0 17px 13px",borderTop:`1px solid ${G.border}`}}>{meal.categories.map(cat=>{const sel=mData[cat.id]||[];return sel.length?<div key={cat.id} style={{fontSize:14,marginTop:5}}><span style={{color:G.muted}}>{cat.label}: </span><span style={{color:G.mid,fontWeight:700}}>{sel.join(" · ")}</span></div>:null;})}{notes&&<div style={{fontSize:13,color:G.sub,marginTop:6,fontStyle:"italic"}}>📝 {notes}</div>}</div>}
+                {done&&!isExp&&<div style={{padding:"0 17px 13px",borderTop:`1px solid ${G.border}`}}>{meal.categories.map(cat=>{const sel=mData[cat.id]||[];return sel.length?<div key={cat.id} style={{fontSize:14,marginTop:5}}><span style={{color:G.muted}}>{cat.label}: </span><span style={{color:G.mid,fontWeight:700}}>{labelsOf(mealPlan,mealId,cat.id,sel).join(" · ")}</span></div>:null;})}{notes&&<div style={{fontSize:13,color:G.sub,marginTop:6,fontStyle:"italic"}}>📝 {notes}</div>}</div>}
                 {isExp&&<div style={{padding:"6px 17px 17px",borderTop:`1px solid ${G.border}`}}>
-                  {meal.categories.map(cat=>{ const sel=mData[cat.id]||[]; return <div key={cat.id} style={{marginTop:15}}><SLabel>{cat.label}{sel.length>0&&<span style={{color:G.mid,marginLeft:7,fontWeight:700,textTransform:"none" as const,letterSpacing:0,fontSize:13}}> → {sel.join(", ")}</span>}</SLabel><div style={{display:"flex",flexWrap:"wrap" as const,gap:7}}>{cat.options.map((opt:string)=><Chip key={opt} label={opt} active={sel.includes(opt)} onClick={()=>toggleOption(mealId,cat.id,opt,cat.single,cat.max)}/>)}</div></div>; })}
+                  {meal.categories.map(cat=>{ const sel=mData[cat.id]||[]; return <div key={cat.id} style={{marginTop:15}}><SLabel>{cat.label}{sel.length>0&&<span style={{color:G.mid,marginLeft:7,fontWeight:700,textTransform:"none" as const,letterSpacing:0,fontSize:13}}> → {labelsOf(mealPlan,mealId,cat.id,sel).join(", ")}</span>}</SLabel><div style={{display:"flex",flexWrap:"wrap" as const,gap:7}}>{cat.options.map(opt=><Chip key={opt.id} label={opt.label} active={sel.includes(opt.id)} onClick={()=>toggleOption(mealId,cat.id,opt.id,cat.single,cat.max)}/>)}</div></div>; })}
                   <div style={{marginTop:15}}><SLabel>📝 Notas</SLabel><textarea value={notes} onChange={e=>updateNote(mealId,e.target.value)} placeholder="Ej: comí en restaurante..." style={{width:"100%",border:`1.5px solid ${G.border}`,borderRadius:11,padding:"11px 13px",fontSize:14,color:G.text,resize:"none" as const,background:G.bg,outline:"none",minHeight:58,boxSizing:"border-box" as const,fontFamily:"inherit",lineHeight:1.5}}/></div>
                 </div>}
               </div>
@@ -640,11 +837,6 @@ export default function App() {
                 <div style={{textAlign:"center" as const}}><div style={{fontWeight:800,fontSize:15,color:G.dark}}>{cap(gymDate.toLocaleDateString("es-CL",{weekday:"long",day:"numeric",month:"long"}))}</div>{gymSessions[fmtDate(gymDate)]&&<div style={{fontSize:12,color:G.green,marginTop:3,fontWeight:600}}>✓ Sesión guardada</div>}</div>
                 <NBtn onClick={()=>{ const d=new Date(gymDate); d.setDate(d.getDate()+1); setGymDate(d); }}>›</NBtn>
               </div>
-            </Card>
-            <Card style={{marginBottom:14}}>
-              <SLabel>💪 Nombre de la rutina</SLabel>
-              <input value={gymTemplate.main?.label||""} onChange={e=>updateTemplateName(e.target.value)} placeholder="Mi rutina" style={{...inp,fontSize:15,padding:"10px 13px"}}/>
-              <div style={{fontSize:12,color:G.muted,marginTop:8}}>{gymTemplate.main?.exercises.length||0} ejercicios en la plantilla</div>
             </Card>
             {lastGymSession&&<Card style={{background:"#fff8f0",border:`1.5px solid ${G.warm}`}}><div style={{fontWeight:700,fontSize:14,color:G.warm,marginBottom:8}}>🏆 Supera estos registros</div><div style={{display:"flex",flexDirection:"column" as const,gap:5}}>{lastGymSession.exercises.map(ex=>{ const maxSet=ex.sets.reduce((best,s)=>(s.weight||0)>(best.weight||0)?s:best,ex.sets[0]); return maxSet?.weight?<div key={ex.id} style={{fontSize:13,color:G.sub,display:"flex",justifyContent:"space-between"}}><span style={{fontWeight:600,color:G.text}}>{ex.name}</span><span>Max <b style={{color:G.warm}}>{maxSet.weight}kg</b> × {maxSet.reps} reps</span></div>:null; })}</div></Card>}
             {gymSession?.exercises.map((ex,exIdx)=>{
