@@ -31,52 +31,52 @@ const DEFAULT_PLAN: Plan = {
   desayuno: { label:"Desayuno", time:"9:00", emoji:"☀️", categories:[
     {id:"lacteo",label:"Lácteo",single:true,required:true,options:[
       {id:"des_yogurt",label:"Yogurt descremado",amount:"1 unidad"},
-      {id:"des_leche",label:"Leche descremada 200cc",amount:"200 cc"}
+      {id:"des_leche",label:"Leche descremada",amount:"200 cc"}
     ]},
     {id:"pan",label:"Pan / Carbohidrato",single:true,required:true,options:[
-      {id:"des_panperfecto",label:"3 rbas. pan perfecto",amount:"3 rebanadas"},
-      {id:"des_panintegral",label:"2 rbas. pan integral",amount:"2 rebanadas"},
-      {id:"des_panpita",label:"1 pan pita integral",amount:"1 unidad"},
-      {id:"des_hallulla",label:"½ hallulla",amount:"½ unidad"},
-      {id:"des_panfrances",label:"1 diente pan francés",amount:"1 diente"},
-      {id:"des_fajitas",label:"2 fajitas (M)",amount:"2 unidades medianas"}
+      {id:"des_panperfecto",label:"Pan perfecto",amount:"3 rebanadas"},
+      {id:"des_panintegral",label:"Pan integral",amount:"2 rebanadas"},
+      {id:"des_panpita",label:"Pan pita integral",amount:"1 unidad"},
+      {id:"des_hallulla",label:"Hallulla",amount:"½ unidad"},
+      {id:"des_panfrances",label:"Pan francés",amount:"1 diente"},
+      {id:"des_fajitas",label:"Fajitas medianas",amount:"2 unidades"}
     ]},
     {id:"proteina",label:"Proteína",single:true,required:true,options:[
-      {id:"des_huevos4",label:"4 huevos (2 yemas)",amount:"4 unidades"},
-      {id:"des_quesillo",label:"5 tajadas quesillo 150g",amount:"150 g"},
-      {id:"des_jamon",label:"3 lám. jamón pavo/pollo",amount:"3 láminas"},
-      {id:"des_pollo",label:"100g pollo cocido",amount:"100 g"},
-      {id:"des_atun",label:"1 lata atún",amount:"1 lata"},
-      {id:"des_huevos3",label:"3 huevos cocidos",amount:"3 unidades",excludesGroups:["grasa"]}
+      {id:"des_huevos4",label:"Huevos (2 yemas)",amount:"4 unidades"},
+      {id:"des_quesillo",label:"Quesillo",amount:"5 tajadas (150 g)"},
+      {id:"des_jamon",label:"Jamón pavo/pollo",amount:"3 láminas"},
+      {id:"des_pollo",label:"Pollo cocido",amount:"100 g"},
+      {id:"des_atun",label:"Atún",amount:"1 lata"},
+      {id:"des_huevos3",label:"Huevos cocidos",amount:"3 unidades",excludesGroups:["grasa"]}
     ]},
     {id:"grasa",label:"Grasa saludable",single:true,required:true,options:[
-      {id:"des_palta",label:"1 cda palta",amount:"1 cucharada sopera"},
-      {id:"des_almendras",label:"6 almendras",amount:"6 unidades"},
-      {id:"des_manies",label:"7 maníes s/sal",amount:"7 unidades"},
-      {id:"des_mantmani",label:"1 cdta mantequilla maní",amount:"10 g"},
-      {id:"des_chia",label:"10g chía",amount:"10 g"},
-      {id:"des_nuez",label:"1 nuez",amount:"1 unidad"},
-      {id:"des_linaza",label:"10g linaza",amount:"10 g"}
+      {id:"des_palta",label:"Palta",amount:"1 cda sopera"},
+      {id:"des_almendras",label:"Almendras",amount:"6 unidades"},
+      {id:"des_manies",label:"Maní sin sal",amount:"7 unidades"},
+      {id:"des_mantmani",label:"Mantequilla de maní",amount:"10 g (1 cdta)"},
+      {id:"des_chia",label:"Chía",amount:"10 g"},
+      {id:"des_nuez",label:"Nuez",amount:"1 unidad"},
+      {id:"des_linaza",label:"Linaza",amount:"10 g"}
     ]}
   ]},
   colacion1: { label:"Colación", time:"11:00", emoji:"🍎", categories:[
     {id:"fruta",label:"Fruta",single:true,required:true,options:[
-      {id:"c1_manzana",label:"1 manzana",amount:"1 unidad"},
-      {id:"c1_pera",label:"1 pera",amount:"1 unidad"},
-      {id:"c1_naranja",label:"1 naranja",amount:"1 unidad"},
-      {id:"c1_platano",label:"½ plátano",amount:"½ unidad"},
-      {id:"c1_kiwi",label:"2 kiwis",amount:"2 unidades"},
-      {id:"c1_frutillas",label:"1 tz frutillas",amount:"200 cc"},
-      {id:"c1_arandanos",label:"1 tz arándanos",amount:"200 cc"},
-      {id:"c1_durazno",label:"1 durazno",amount:"1 unidad"},
-      {id:"c1_mandarina",label:"2 mandarinas",amount:"2 unidades"},
-      {id:"c1_cerezas",label:"15 cerezas",amount:"15 unidades"},
-      {id:"c1_pina",label:"¾ tz piña",amount:"130 g"},
-      {id:"c1_sandia",label:"1 tz sandía",amount:"200 g"},
-      {id:"c1_melon",label:"1 tz melón",amount:"180 g"},
-      {id:"c1_frambuesas",label:"1 tz frambuesas",amount:"200 cc"},
-      {id:"c1_mora",label:"½ tz mora",amount:"100 cc"},
-      {id:"c1_pepino",label:"1 pepino grande",amount:"1 unidad grande"}
+      {id:"c1_manzana",label:"Manzana",amount:"1 unidad"},
+      {id:"c1_pera",label:"Pera",amount:"1 unidad"},
+      {id:"c1_naranja",label:"Naranja",amount:"1 unidad"},
+      {id:"c1_platano",label:"Plátano",amount:"½ unidad"},
+      {id:"c1_kiwi",label:"Kiwi",amount:"2 unidades"},
+      {id:"c1_frutillas",label:"Frutillas",amount:"1 taza (200 cc)"},
+      {id:"c1_arandanos",label:"Arándanos",amount:"1 taza (200 cc)"},
+      {id:"c1_durazno",label:"Durazno",amount:"1 unidad"},
+      {id:"c1_mandarina",label:"Mandarina",amount:"2 unidades"},
+      {id:"c1_cerezas",label:"Cerezas",amount:"15 unidades"},
+      {id:"c1_pina",label:"Piña",amount:"130 g (¾ taza)"},
+      {id:"c1_sandia",label:"Sandía",amount:"200 g (1 taza)"},
+      {id:"c1_melon",label:"Melón",amount:"180 g (1 taza)"},
+      {id:"c1_frambuesas",label:"Frambuesas",amount:"1 taza (200 cc)"},
+      {id:"c1_mora",label:"Mora",amount:"½ taza (100 cc)"},
+      {id:"c1_pepino",label:"Pepino grande",amount:"1 unidad"}
     ]}
   ]},
   almuerzo: { label:"Almuerzo", time:"13:00–14:00", emoji:"🍽️", categories:[
@@ -88,84 +88,84 @@ const DEFAULT_PLAN: Plan = {
       {id:"al_pepino",label:"Pepino",amount:"1 taza"},
       {id:"al_pimiento",label:"Pimiento morrón",amount:"1 taza"},
       {id:"al_repollo",label:"Repollo",amount:"1 taza"},
-      {id:"al_zapallo_c",label:"Zapallo italiano",amount:"1 taza cruda"},
+      {id:"al_zapallo_c",label:"Zapallo italiano crudo",amount:"1 taza"},
       {id:"al_acelga_c",label:"Acelga cruda",amount:"1 taza"}
     ]},
     {id:"general",label:"Ensalada general (elige 1)",single:true,required:true,options:[
-      {id:"al_tomate",label:"1 tomate",amount:"1 unidad"},
-      {id:"al_zanahoria_c",label:"½ tz zanahoria cruda",amount:"100 g"},
-      {id:"al_cebolla",label:"¾ tz cebolla",amount:"150 g"},
-      {id:"al_champinones",label:"1½ tz champiñones",amount:"300 g"},
-      {id:"al_palmitos",label:"½ tz palmitos",amount:"100 g"},
-      {id:"al_acelga",label:"½ tz acelga cocida",amount:"100 g"},
-      {id:"al_alcachofa",label:"1 alcachofa chica",amount:"1 unidad chica"},
-      {id:"al_betarraga",label:"½ tz betarraga",amount:"100 g"},
-      {id:"al_brocoli",label:"1 tz brócoli",amount:"200 g"},
-      {id:"al_coliflor",label:"1 tz coliflor",amount:"200 g"},
-      {id:"al_esparragos",label:"5 espárragos",amount:"5 unidades"},
-      {id:"al_porotosv",label:"¾ tz porotos verdes",amount:"150 g"},
-      {id:"al_zanahoria",label:"1 tz zanahoria cocida",amount:"200 g"},
-      {id:"al_zapallo",label:"1 tz zapallo italiano cocido",amount:"200 g"},
-      {id:"al_camote",label:"½ tz zapallo camote",amount:"100 g"}
+      {id:"al_tomate",label:"Tomate",amount:"1 unidad"},
+      {id:"al_zanahoria_c",label:"Zanahoria cruda",amount:"½ taza (100 g)"},
+      {id:"al_cebolla",label:"Cebolla",amount:"¾ taza (150 g)"},
+      {id:"al_champinones",label:"Champiñones",amount:"1½ taza (300 g)"},
+      {id:"al_palmitos",label:"Palmitos",amount:"½ taza (100 g)"},
+      {id:"al_acelga",label:"Acelga cocida",amount:"½ taza (100 g)"},
+      {id:"al_alcachofa",label:"Alcachofa chica",amount:"1 unidad"},
+      {id:"al_betarraga",label:"Betarraga",amount:"½ taza (100 g)"},
+      {id:"al_brocoli",label:"Brócoli",amount:"1 taza (200 g)"},
+      {id:"al_coliflor",label:"Coliflor",amount:"1 taza (200 g)"},
+      {id:"al_esparragos",label:"Espárragos",amount:"5 unidades"},
+      {id:"al_porotosv",label:"Porotos verdes",amount:"¾ taza (150 g)"},
+      {id:"al_zanahoria",label:"Zanahoria cocida",amount:"1 taza (200 g)"},
+      {id:"al_zapallo",label:"Zapallo italiano cocido",amount:"1 taza (200 g)"},
+      {id:"al_camote",label:"Zapallo camote",amount:"½ taza (100 g)"}
     ]},
     {id:"proteina",label:"Proteína",single:true,required:true,excludesGroups:["proteina_mixta","carbo_mixta","extra_mixta"],options:[
-      {id:"al_pollo",label:"150g pollo",amount:"150 g"},
-      {id:"al_carne",label:"150g carne magra",amount:"150 g"},
-      {id:"al_atun",label:"1½ lata atún",amount:"1½ lata"},
-      {id:"al_jurel",label:"3 trozos jurel 150g",amount:"150 g"},
-      {id:"al_pavo",label:"150g pavo",amount:"150 g"},
-      {id:"al_pescado",label:"150g salmón/pescado",amount:"150 g"}
+      {id:"al_pollo",label:"Pollo",amount:"150 g"},
+      {id:"al_carne",label:"Carne magra",amount:"150 g"},
+      {id:"al_atun",label:"Atún",amount:"1½ lata"},
+      {id:"al_jurel",label:"Jurel en lata",amount:"3 trozos (150 g)"},
+      {id:"al_pavo",label:"Pavo",amount:"150 g"},
+      {id:"al_pescado",label:"Salmón / pescado",amount:"150 g"}
     ]},
     {id:"carbo",label:"Carbohidrato",single:true,required:true,excludesGroups:["proteina_mixta","carbo_mixta","extra_mixta"],options:[
-      {id:"al_arroz",label:"1 tz arroz cocido",amount:"150 g"},
-      {id:"al_fideos",label:"1 tz fideos cocidos",amount:"150 g"},
-      {id:"al_papas",label:"270g papas cocidas",amount:"270 g"},
-      {id:"al_quinoa",label:"1 tz quínoa",amount:"150 g"},
-      {id:"al_cuscus",label:"1 tz cus-cus",amount:"150 g"},
-      {id:"al_fajitas",label:"3 fajitas (M)",amount:"3 unidades medianas"},
-      {id:"al_pure",label:"210g puré de papas",amount:"210 g"},
-      {id:"al_papashorno",label:"210g papas horneadas",amount:"210 g"}
+      {id:"al_arroz",label:"Arroz cocido",amount:"1 taza (150 g)"},
+      {id:"al_fideos",label:"Fideos cocidos",amount:"1 taza (150 g)"},
+      {id:"al_papas",label:"Papas cocidas",amount:"1½ unidad (270 g)"},
+      {id:"al_quinoa",label:"Quínoa",amount:"1 taza (150 g)"},
+      {id:"al_cuscus",label:"Cus-cus",amount:"1 taza (150 g)"},
+      {id:"al_fajitas",label:"Fajitas medianas",amount:"3 unidades"},
+      {id:"al_pure",label:"Puré de papas",amount:"210 g"},
+      {id:"al_papashorno",label:"Papas horneadas",amount:"210 g"}
     ]},
-    {id:"proteina_mixta",label:"Preparación mixta — legumbre",single:true,required:false,excludesGroups:["proteina","carbo"],options:[
-      {id:"alm_porotos",label:"1 tz porotos cocidos",amount:"150 g"},
-      {id:"alm_lentejas",label:"1 tz lentejas cocidas",amount:"210 g"},
-      {id:"alm_garbanzos",label:"1 tz garbanzos cocidos",amount:"150 g"},
-      {id:"alm_arvejas",label:"1 tz arvejas cocidas",amount:"200 g"}
+    {id:"proteina_mixta",label:"Legumbre (mixta)",single:true,required:false,excludesGroups:["proteina","carbo"],options:[
+      {id:"alm_porotos",label:"Porotos cocidos",amount:"1 taza (150 g)"},
+      {id:"alm_lentejas",label:"Lentejas cocidas",amount:"1 taza (210 g)"},
+      {id:"alm_garbanzos",label:"Garbanzos cocidos",amount:"1 taza (150 g)"},
+      {id:"alm_arvejas",label:"Arvejas cocidas",amount:"1 taza (200 g)"}
     ]},
-    {id:"carbo_mixta",label:"Preparación mixta — cereal",single:true,required:false,excludesGroups:["proteina","carbo"],options:[
-      {id:"alm_arrozmedio",label:"½ tz arroz cocido",amount:"70 g"},
-      {id:"alm_fideosmedio",label:"½ tz fideos cocidos",amount:"70 g"}
+    {id:"carbo_mixta",label:"Cereal (mixta)",single:true,required:false,excludesGroups:["proteina","carbo"],options:[
+      {id:"alm_arrozmedio",label:"Arroz cocido",amount:"½ taza (70 g)"},
+      {id:"alm_fideosmedio",label:"Fideos cocidos",amount:"½ taza (70 g)"}
     ]},
-    {id:"extra_mixta",label:"Preparación mixta — proteína extra",single:true,required:false,excludesGroups:["proteina","carbo"],options:[
-      {id:"alm_pollo50",label:"50g pollo",amount:"50 g"},
-      {id:"alm_carne50",label:"50g carne magra",amount:"50 g"},
-      {id:"alm_huevo1",label:"1 huevo cocido",amount:"1 unidad"}
+    {id:"extra_mixta",label:"Proteína extra (mixta)",single:true,required:false,excludesGroups:["proteina","carbo"],options:[
+      {id:"alm_pollo50",label:"Pollo",amount:"50 g"},
+      {id:"alm_carne50",label:"Carne magra",amount:"50 g"},
+      {id:"alm_huevo1",label:"Huevo cocido",amount:"1 unidad"}
     ]}
   ]},
   colacion2: { label:"Colación", time:"17:00", emoji:"🥛", categories:[
     {id:"lacteo",label:"Lácteo",single:true,required:true,options:[
       {id:"c2_yogurt",label:"Yogurt descremado",amount:"1 unidad"},
-      {id:"c2_leche",label:"Leche descremada 200cc",amount:"200 cc"}
+      {id:"c2_leche",label:"Leche descremada",amount:"200 cc"}
     ]},
     {id:"opciones",label:"Elige 2",single:false,max:2,required:true,options:[
-      {id:"c2_avena",label:"20g avena",amount:"20 g (3 cdas)"},
-      {id:"c2_manzana",label:"1 manzana",amount:"1 unidad"},
-      {id:"c2_pera",label:"1 pera",amount:"1 unidad"},
-      {id:"c2_naranja",label:"1 naranja",amount:"1 unidad"},
-      {id:"c2_platano",label:"½ plátano",amount:"½ unidad"},
-      {id:"c2_kiwi",label:"2 kiwis",amount:"2 unidades"},
-      {id:"c2_frutillas",label:"1 tz frutillas",amount:"200 cc"},
-      {id:"c2_arandanos",label:"1 tz arándanos",amount:"200 cc"},
-      {id:"c2_durazno",label:"1 durazno",amount:"1 unidad"},
-      {id:"c2_mandarina",label:"2 mandarinas",amount:"2 unidades"},
-      {id:"c2_cerezas",label:"15 cerezas",amount:"15 unidades"},
-      {id:"c2_pina",label:"¾ tz piña",amount:"130 g"},
-      {id:"c2_sandia",label:"1 tz sandía",amount:"200 g"},
-      {id:"c2_melon",label:"1 tz melón",amount:"180 g"},
-      {id:"c2_frambuesas",label:"1 tz frambuesas",amount:"200 cc"},
-      {id:"c2_mora",label:"½ tz mora",amount:"100 cc"},
-      {id:"c2_pepino",label:"1 pepino",amount:"1 unidad"},
-      {id:"c2_cereal",label:"20g cereal",amount:"20 g (3 cdas)"}
+      {id:"c2_avena",label:"Avena",amount:"20 g (3 cdas)"},
+      {id:"c2_manzana",label:"Manzana",amount:"1 unidad"},
+      {id:"c2_pera",label:"Pera",amount:"1 unidad"},
+      {id:"c2_naranja",label:"Naranja",amount:"1 unidad"},
+      {id:"c2_platano",label:"Plátano",amount:"½ unidad"},
+      {id:"c2_kiwi",label:"Kiwi",amount:"2 unidades"},
+      {id:"c2_frutillas",label:"Frutillas",amount:"1 taza (200 cc)"},
+      {id:"c2_arandanos",label:"Arándanos",amount:"1 taza (200 cc)"},
+      {id:"c2_durazno",label:"Durazno",amount:"1 unidad"},
+      {id:"c2_mandarina",label:"Mandarina",amount:"2 unidades"},
+      {id:"c2_cerezas",label:"Cerezas",amount:"15 unidades"},
+      {id:"c2_pina",label:"Piña",amount:"130 g (¾ taza)"},
+      {id:"c2_sandia",label:"Sandía",amount:"200 g (1 taza)"},
+      {id:"c2_melon",label:"Melón",amount:"180 g (1 taza)"},
+      {id:"c2_frambuesas",label:"Frambuesas",amount:"1 taza (200 cc)"},
+      {id:"c2_mora",label:"Mora",amount:"½ taza (100 cc)"},
+      {id:"c2_pepino",label:"Pepino",amount:"1 unidad"},
+      {id:"c2_cereal",label:"Cereal",amount:"20 g (3 cdas)"}
     ]}
   ]},
   cena: { label:"Cena", time:"20:00", emoji:"🌙", categories:[
@@ -177,82 +177,82 @@ const DEFAULT_PLAN: Plan = {
       {id:"ce_pepino",label:"Pepino",amount:"1 taza"},
       {id:"ce_pimiento",label:"Pimiento morrón",amount:"1 taza"},
       {id:"ce_repollo",label:"Repollo",amount:"1 taza"},
-      {id:"ce_zapallo_c",label:"Zapallo italiano",amount:"1 taza cruda"},
+      {id:"ce_zapallo_c",label:"Zapallo italiano crudo",amount:"1 taza"},
       {id:"ce_acelga_c",label:"Acelga cruda",amount:"1 taza"}
     ]},
     {id:"general",label:"Ensalada general (elige 1)",single:true,required:true,options:[
-      {id:"ce_tomate",label:"1 tomate",amount:"1 unidad"},
-      {id:"ce_zanahoria_c",label:"½ tz zanahoria cruda",amount:"100 g"},
-      {id:"ce_cebolla",label:"¾ tz cebolla",amount:"150 g"},
-      {id:"ce_champinones",label:"1½ tz champiñones",amount:"300 g"},
-      {id:"ce_palmitos",label:"½ tz palmitos",amount:"100 g"},
-      {id:"ce_acelga",label:"½ tz acelga cocida",amount:"100 g"},
-      {id:"ce_alcachofa",label:"1 alcachofa chica",amount:"1 unidad chica"},
-      {id:"ce_betarraga",label:"½ tz betarraga",amount:"100 g"},
-      {id:"ce_brocoli",label:"1 tz brócoli",amount:"200 g"},
-      {id:"ce_coliflor",label:"1 tz coliflor",amount:"200 g"},
-      {id:"ce_esparragos",label:"5 espárragos",amount:"5 unidades"},
-      {id:"ce_porotosv",label:"¾ tz porotos verdes",amount:"150 g"},
-      {id:"ce_zanahoria",label:"1 tz zanahoria cocida",amount:"200 g"},
-      {id:"ce_zapallo",label:"1 tz zapallo italiano cocido",amount:"200 g"}
+      {id:"ce_tomate",label:"Tomate",amount:"1 unidad"},
+      {id:"ce_zanahoria_c",label:"Zanahoria cruda",amount:"½ taza (100 g)"},
+      {id:"ce_cebolla",label:"Cebolla",amount:"¾ taza (150 g)"},
+      {id:"ce_champinones",label:"Champiñones",amount:"1½ taza (300 g)"},
+      {id:"ce_palmitos",label:"Palmitos",amount:"½ taza (100 g)"},
+      {id:"ce_acelga",label:"Acelga cocida",amount:"½ taza (100 g)"},
+      {id:"ce_alcachofa",label:"Alcachofa chica",amount:"1 unidad"},
+      {id:"ce_betarraga",label:"Betarraga",amount:"½ taza (100 g)"},
+      {id:"ce_brocoli",label:"Brócoli",amount:"1 taza (200 g)"},
+      {id:"ce_coliflor",label:"Coliflor",amount:"1 taza (200 g)"},
+      {id:"ce_esparragos",label:"Espárragos",amount:"5 unidades"},
+      {id:"ce_porotosv",label:"Porotos verdes",amount:"¾ taza (150 g)"},
+      {id:"ce_zanahoria",label:"Zanahoria cocida",amount:"1 taza (200 g)"},
+      {id:"ce_zapallo",label:"Zapallo italiano cocido",amount:"1 taza (200 g)"}
     ]},
     {id:"proteina",label:"Proteína",single:true,required:true,options:[
-      {id:"ce_pollo",label:"100g pollo",amount:"100 g"},
-      {id:"ce_huevos3",label:"3 huevos cocidos",amount:"3 unidades"},
-      {id:"ce_carne",label:"100g carne magra",amount:"100 g"},
-      {id:"ce_atun",label:"1 lata atún",amount:"1 lata"},
-      {id:"ce_jurel",label:"2 trozos jurel 100g",amount:"100 g"},
-      {id:"ce_pavo",label:"100g pavo",amount:"100 g"},
-      {id:"ce_pescado",label:"100g salmón/pescado",amount:"100 g"}
+      {id:"ce_pollo",label:"Pollo",amount:"100 g"},
+      {id:"ce_huevos3",label:"Huevos cocidos",amount:"3 unidades"},
+      {id:"ce_carne",label:"Carne magra",amount:"100 g"},
+      {id:"ce_atun",label:"Atún",amount:"1 lata"},
+      {id:"ce_jurel",label:"Jurel en lata",amount:"2 trozos (100 g)"},
+      {id:"ce_pavo",label:"Pavo",amount:"100 g"},
+      {id:"ce_pescado",label:"Salmón / pescado",amount:"100 g"}
     ]},
     {id:"carbo",label:"Carbohidrato",single:true,required:true,options:[
-      {id:"ce_arroz",label:"¾ tz arroz cocido",amount:"110 g"},
-      {id:"ce_fideos",label:"¾ tz fideos cocidos",amount:"110 g"},
-      {id:"ce_papas",label:"180g papas cocidas",amount:"180 g"},
-      {id:"ce_quinoa",label:"¾ tz quínoa",amount:"110 g"},
-      {id:"ce_cuscus",label:"¾ tz cus-cus",amount:"110 g"},
-      {id:"ce_fajitas",label:"2 fajitas (M)",amount:"2 unidades medianas"},
-      {id:"ce_pure",label:"140g puré de papas",amount:"140 g"},
-      {id:"ce_papashorno",label:"140g papas horneadas",amount:"140 g"}
+      {id:"ce_arroz",label:"Arroz cocido",amount:"¾ taza (110 g)"},
+      {id:"ce_fideos",label:"Fideos cocidos",amount:"¾ taza (110 g)"},
+      {id:"ce_papas",label:"Papas cocidas",amount:"180 g"},
+      {id:"ce_quinoa",label:"Quínoa",amount:"¾ taza (110 g)"},
+      {id:"ce_cuscus",label:"Cus-cus",amount:"¾ taza (110 g)"},
+      {id:"ce_fajitas",label:"Fajitas medianas",amount:"2 unidades"},
+      {id:"ce_pure",label:"Puré de papas",amount:"140 g"},
+      {id:"ce_papashorno",label:"Papas horneadas",amount:"140 g"}
     ]}
   ]},
   colacion3: { label:"Colación", time:"22:00", emoji:"🌛", categories:[
     {id:"lacteo",label:"Lácteo",single:true,required:true,options:[
       {id:"c3_yogurt",label:"Yogurt descremado",amount:"1 unidad"},
-      {id:"c3_leche",label:"Leche descremada 200cc",amount:"200 cc"}
+      {id:"c3_leche",label:"Leche descremada",amount:"200 cc"}
     ]},
     {id:"opcion",label:"Elige 1",single:true,required:true,options:[
-      {id:"c3_avena",label:"20g avena",amount:"20 g (3 cdas)"},
-      {id:"c3_manzana",label:"1 manzana",amount:"1 unidad"},
-      {id:"c3_pera",label:"1 pera",amount:"1 unidad"},
-      {id:"c3_naranja",label:"1 naranja",amount:"1 unidad"},
-      {id:"c3_platano",label:"½ plátano",amount:"½ unidad"},
-      {id:"c3_kiwi",label:"2 kiwis",amount:"2 unidades"},
-      {id:"c3_frutillas",label:"1 tz frutillas",amount:"200 cc"},
-      {id:"c3_arandanos",label:"1 tz arándanos",amount:"200 cc"},
-      {id:"c3_durazno",label:"1 durazno",amount:"1 unidad"},
-      {id:"c3_mandarina",label:"2 mandarinas",amount:"2 unidades"},
+      {id:"c3_avena",label:"Avena",amount:"20 g (3 cdas)"},
+      {id:"c3_manzana",label:"Manzana",amount:"1 unidad"},
+      {id:"c3_pera",label:"Pera",amount:"1 unidad"},
+      {id:"c3_naranja",label:"Naranja",amount:"1 unidad"},
+      {id:"c3_platano",label:"Plátano",amount:"½ unidad"},
+      {id:"c3_kiwi",label:"Kiwi",amount:"2 unidades"},
+      {id:"c3_frutillas",label:"Frutillas",amount:"1 taza (200 cc)"},
+      {id:"c3_arandanos",label:"Arándanos",amount:"1 taza (200 cc)"},
+      {id:"c3_durazno",label:"Durazno",amount:"1 unidad"},
+      {id:"c3_mandarina",label:"Mandarina",amount:"2 unidades"},
       {id:"c3_cerezas",label:"15 cerezas",amount:"15 unidades"},
-      {id:"c3_pina",label:"¾ tz piña",amount:"130 g"},
-      {id:"c3_sandia",label:"1 tz sandía",amount:"200 g"},
-      {id:"c3_melon",label:"1 tz melón",amount:"180 g"},
-      {id:"c3_frambuesas",label:"1 tz frambuesas",amount:"200 cc"},
-      {id:"c3_mora",label:"½ tz mora",amount:"100 cc"},
-      {id:"c3_pepino",label:"1 pepino",amount:"1 unidad"},
-      {id:"c3_cereal",label:"20g cereal",amount:"20 g (3 cdas)"}
+      {id:"c3_pina",label:"Piña",amount:"130 g (¾ taza)"},
+      {id:"c3_sandia",label:"Sandía",amount:"200 g (1 taza)"},
+      {id:"c3_melon",label:"Melón",amount:"180 g (1 taza)"},
+      {id:"c3_frambuesas",label:"Frambuesas",amount:"1 taza (200 cc)"},
+      {id:"c3_mora",label:"Mora",amount:"½ taza (100 cc)"},
+      {id:"c3_pepino",label:"Pepino",amount:"1 unidad"},
+      {id:"c3_cereal",label:"Cereal",amount:"20 g (3 cdas)"}
     ]}
   ]},
   postEntreno: { label:"Post Entreno", time:"Tras entrenamiento", emoji:"💪", categories:[
     {id:"proteina",label:"Proteína + recuperación",single:false,required:false,options:[
-      {id:"pe_scoop",label:"1 scoop proteína",amount:"1 scoop"},
-      {id:"pe_leche",label:"200cc leche descremada",amount:"200 cc"},
-      {id:"pe_creatina",label:"5g creatina",amount:"5 g"}
+      {id:"pe_scoop",label:"Proteína",amount:"1 scoop"},
+      {id:"pe_leche",label:"Leche descremada",amount:"200 cc"},
+      {id:"pe_creatina",label:"Creatina",amount:"5 g"}
     ]}
   ]},
   postEntreno2: { label:"Post Entreno (2ª jornada)", time:"Tras segunda sesión", emoji:"🥤", categories:[
     {id:"recuperacion",label:"Recuperación adicional",single:false,required:false,options:[
-      {id:"pe2_leche",label:"200cc leche descremada",amount:"200 cc"},
-      {id:"pe2_platano",label:"1 plátano",amount:"1 unidad"}
+      {id:"pe2_leche",label:"Leche descremada",amount:"200 cc"},
+      {id:"pe2_platano",label:"Plátano",amount:"1 unidad"}
     ]}
   ]}
 };
@@ -390,7 +390,15 @@ const useWidth = () => { const [w,setW]=useState(typeof window!=="undefined"?win
 
 // ── Components ─────────────────────────────────────────────────────────────
 const NBtn = ({onClick,children,disabled}:any) => <button onClick={onClick} disabled={disabled} style={{background:"transparent",border:"none",cursor:disabled?"default":"pointer",color:disabled?"#ccc":G.mid,padding:"4px 14px",fontWeight:800,fontSize:26,lineHeight:1}}>{children}</button>;
-const Chip = ({label,active,onClick,color}:any) => <button onClick={onClick} style={{border:active?`2px solid ${color||G.mid}`:`1.5px solid ${G.border}`,borderRadius:99,padding:"7px 14px",fontSize:14,fontWeight:active?700:400,background:active?G.light:G.white,color:active?G.dark:G.sub,cursor:"pointer",transition:"all 0.12s",whiteSpace:"nowrap" as const}}>{label}</button>;
+const Chip = ({label,amount,active,onClick,color}:any) => {
+  const showAmount = amount && normalizeName(label)!==normalizeName(amount) && !normalizeName(label).includes(normalizeName(amount));
+  return (
+    <button onClick={onClick} style={{border:active?`2px solid ${color||G.mid}`:`1.5px solid ${G.border}`,borderRadius:14,padding:showAmount?"6px 13px":"7px 14px",fontSize:14,fontWeight:active?700:400,background:active?G.light:G.white,color:active?G.dark:G.sub,cursor:"pointer",transition:"all 0.12s",whiteSpace:"nowrap" as const,display:"flex",flexDirection:"column" as const,alignItems:"center" as const,lineHeight:1.2,gap:1}}>
+      <span>{label}</span>
+      {showAmount&&<span style={{fontSize:11,fontWeight:400,color:active?G.mid:G.muted,opacity:0.85}}>{amount}</span>}
+    </button>
+  );
+};
 const Bar = ({pct,color,height=7}:any) => <div style={{background:G.border,borderRadius:99,height,overflow:"hidden"}}><div style={{background:color,height:"100%",borderRadius:99,width:`${Math.min(pct,100)}%`,transition:"width 0.4s"}}/></div>;
 const Card = ({children,style}:any) => <div style={{background:G.white,borderRadius:18,padding:"18px",boxShadow:"0 2px 12px rgba(14,32,68,0.07)",marginBottom:14,...style}}>{children}</div>;
 const SLabel = ({children}:any) => <div style={{fontSize:12,fontWeight:700,color:G.muted,textTransform:"uppercase" as const,letterSpacing:1,marginBottom:8}}>{children}</div>;
@@ -777,7 +785,7 @@ export default function App() {
                 </div>
                 {done&&!isExp&&<div style={{padding:"0 17px 13px",borderTop:`1px solid ${G.border}`}}>{meal.categories.map(cat=>{const sel=mData[cat.id]||[];return sel.length?<div key={cat.id} style={{fontSize:14,marginTop:5}}><span style={{color:G.muted}}>{cat.label}: </span><span style={{color:G.mid,fontWeight:700}}>{labelsOf(mealPlan,mealId,cat.id,sel).join(" · ")}</span></div>:null;})}{notes&&<div style={{fontSize:13,color:G.sub,marginTop:6,fontStyle:"italic"}}>📝 {notes}</div>}</div>}
                 {isExp&&<div style={{padding:"6px 17px 17px",borderTop:`1px solid ${G.border}`}}>
-                  {meal.categories.map(cat=>{ const sel=mData[cat.id]||[]; return <div key={cat.id} style={{marginTop:15}}><SLabel>{cat.label}{sel.length>0&&<span style={{color:G.mid,marginLeft:7,fontWeight:700,textTransform:"none" as const,letterSpacing:0,fontSize:13}}> → {labelsOf(mealPlan,mealId,cat.id,sel).join(", ")}</span>}</SLabel><div style={{display:"flex",flexWrap:"wrap" as const,gap:7}}>{cat.options.map(opt=><Chip key={opt.id} label={opt.label} active={sel.includes(opt.id)} onClick={()=>toggleOption(mealId,cat.id,opt.id,cat.single,cat.max)}/>)}</div></div>; })}
+                  {meal.categories.map(cat=>{ const sel=mData[cat.id]||[]; return <div key={cat.id} style={{marginTop:15}}><SLabel>{cat.label}{sel.length>0&&<span style={{color:G.mid,marginLeft:7,fontWeight:700,textTransform:"none" as const,letterSpacing:0,fontSize:13}}> → {labelsOf(mealPlan,mealId,cat.id,sel).join(", ")}</span>}</SLabel><div style={{display:"flex",flexWrap:"wrap" as const,gap:7}}>{cat.options.map(opt=><Chip key={opt.id} label={opt.label} amount={opt.amount} active={sel.includes(opt.id)} onClick={()=>toggleOption(mealId,cat.id,opt.id,cat.single,cat.max)}/>)}</div></div>; })}
                   <div style={{marginTop:15}}><SLabel>📝 Notas</SLabel><textarea value={notes} onChange={e=>updateNote(mealId,e.target.value)} placeholder="Ej: comí en restaurante..." style={{width:"100%",border:`1.5px solid ${G.border}`,borderRadius:11,padding:"11px 13px",fontSize:14,color:G.text,resize:"none" as const,background:G.bg,outline:"none",minHeight:58,boxSizing:"border-box" as const,fontFamily:"inherit",lineHeight:1.5}}/></div>
                 </div>}
               </div>
