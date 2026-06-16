@@ -295,7 +295,26 @@ const getWeekStart = (base:Date,offset:number) => { const d=new Date(base); d.se
 const avg = (arr:number[]) => arr.length?+(arr.reduce((a,b)=>a+b,0)/arr.length).toFixed(1):0;
 const labelOf = (plan:Plan,mealId:string,catId:string,idOrLabel:string):string => { const cat=plan[mealId]?.categories.find(c=>c.id===catId); const opt=cat?.options.find(o=>o.id===idOrLabel); return opt?.label||idOrLabel; };
 const labelsOf = (plan:Plan,mealId:string,catId:string,items:string[]):string[] => items.map(i=>labelOf(plan,mealId,catId,i));
-const isMealComplete = (plan:Plan,mealId:string,mealData:any):boolean => { const meal=plan[mealId]; if(!meal) return false; const required=meal.categories.filter(c=>c.required!==false); const reqOk=required.every(c=>(mealData?.[c.id]||[]).length>0); if(!reqOk) return false; if(required.length===0) return meal.categories.some(c=>(mealData?.[c.id]||[]).length>0); return true; };
+const isMealComplete = (plan:Plan,mealId:string,mealData:any):boolean => {
+  const meal=plan[mealId];
+  if(!meal) return false;
+  // Recolectar grupos suprimidos por exclusiones activas (de categoría y de opción)
+  const suppressed=new Set<string>();
+  meal.categories.forEach(cat=>{
+    const sel=mealData?.[cat.id]||[];
+    if(sel.length===0) return;
+    if(cat.excludesGroups) cat.excludesGroups.forEach(g=>suppressed.add(g));
+    sel.forEach((id:string)=>{
+      const opt=cat.options.find(o=>o.id===id);
+      if(opt?.excludesGroups) opt.excludesGroups.forEach(g=>suppressed.add(g));
+    });
+  });
+  const required=meal.categories.filter(c=>c.required!==false&&!suppressed.has(c.id));
+  const reqOk=required.every(c=>(mealData?.[c.id]||[]).length>0);
+  if(!reqOk) return false;
+  if(required.length===0) return meal.categories.some(c=>(mealData?.[c.id]||[]).length>0);
+  return true;
+};
 const normalizeName = (s:string):string => s.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().trim().replace(/\s+/g," ");
 const levenshtein = (a:string,b:string):number => { if(a===b) return 0; if(!a.length) return b.length; if(!b.length) return a.length; let prev=Array.from({length:b.length+1},(_,i)=>i); for(let i=0;i<a.length;i++){ const curr=[i+1]; for(let j=0;j<b.length;j++){ curr.push(Math.min(prev[j+1]+1,curr[j]+1,prev[j]+(a[i]===b[j]?0:1))); } prev=curr; } return prev[b.length]; };
 const mergeExerciseDuplicates = (sessions:GymSessions):{sessions:GymSessions,changed:boolean,canonical:Record<string,string>,merges:{from:string;to:string}[]} => {
